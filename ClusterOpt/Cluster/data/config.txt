@@ -1,0 +1,154 @@
+# Binary Alloy Cluster Optimization Configuration File
+# ====================================================
+# This file contains all configurable parameters for the optimization
+# Lines starting with # are comments
+# Format: parameter=value
+
+# ==================== GENERAL PARAMETERS ====================
+
+# Total number of atoms in the cluster
+totalAtoms=23
+
+# Composition (numElementA + numElementB must equal totalAtoms)
+numElementA=12
+numElementB=11
+
+# Element symbols (any valid element symbol)
+elementA=Pt
+elementB=Ni
+
+# Gupta potential parameters file
+potentialFile=data/gupta_PtNi.txt
+
+# ==================== RUN CONTROL ====================
+
+# Number of independent runs for each composition
+numRuns=1
+
+# Run all possible compositions for the given totalAtoms
+# If true, will optimize all combinations from (N,0) to (0,N)
+
+runAllCompositions=false
+
+# ==================== ALGORITHM SELECTION ====================
+
+# Choose optimization algorithm: IDE or SaNSDE
+algorithm=IDE
+
+# ==================== IDE ALGORITHM PARAMETERS ====================
+# These parameters are used when algorithm=IDE
+
+# Population size for each sub-population
+ide.populationSize=40
+
+# Maximum number of generations
+ide.maxGenerations=200
+
+# Interval for exchanging best individuals between populations
+ide.exchangeInterval=20
+
+# Whether to use local search optimization
+ide.useLocalSearch=true
+
+# Frequency of local search (every N evaluations)
+ide.localSearchFrequency=1
+
+# Use multiple populations with different strategies
+ide.useMultiPopulation=true
+
+# ==================== SaNSDE ALGORITHM PARAMETERS ====================
+# These parameters are used when algorithm=SaNSDE
+
+# Population size
+sansde.populationSize=40
+
+# Maximum number of generations
+sansde.maxGenerations=200
+
+# Learning period for strategy adaptation
+sansde.learningPeriod=20
+
+# Mutation factor F range
+sansde.F_min=0.1
+sansde.F_max=1.0
+
+# Crossover rate CR range
+sansde.CR_min=0.0
+sansde.CR_max=1.0
+
+# Minimum probability for strategy selection
+sansde.p_min=0.1
+
+# Neighborhood search size range
+sansde.neighborhoodSizeMin=2
+sansde.neighborhoodSizeMax=15
+
+# Size of success memory for parameter adaptation
+sansde.memorySize=100
+
+# Whether to use local search optimization
+sansde.useLocalSearch=true
+
+# Frequency of local search (every N evaluations)
+sansde.localSearchFrequency=1
+
+# ==================== FILE AND OUTPUT PARAMETERS ====================
+
+# Directory for saving results
+outputDirectory=results
+
+# Save intermediate results during optimization
+saveIntermediates=true
+
+# Save frequency (every N generations)
+saveFrequency=10
+
+# ==================== ADVANCED OPTIONS ====================
+
+# Verbose output (show detailed progress)
+verbose=true
+
+# Random seed (-1 for time-based seed, or specify a positive integer for reproducibility)
+randomSeed=-1
+
+# Convergence tolerance (stop if improvement < tolerance)
+convergenceTolerance=1e-6
+
+# Stall generations (stop if no improvement for this many generations)
+stallGenerations=100
+
+# ==================== NOTES ====================
+# 
+# 1. Algorithm Selection:
+#    - IDE: Island Differential Evolution with multiple populations
+#    - SaNSDE: Self-adaptive Differential Evolution with Neighborhood Search
+#
+# 2. Running All Compositions:
+#    - Set runAllCompositions=true to optimize all possible (nA,nB) combinations
+#    - Each composition will run numRuns times
+#    - Results will be saved in separate directories
+#
+# 3. Local Search:
+#    - L-BFGS local optimization can significantly improve results
+#    - Frequency controls how often it's applied (computational cost)
+#
+# 4. Performance Tips:
+#    - Increase population size for better exploration
+#    - Increase generations for better convergence
+#    - Use multiple runs to assess algorithm reliability
+#    - Enable local search for faster convergence
+#
+# 5. Memory Usage:
+#    - Larger populations and more generations require more memory
+#    - Running all compositions multiplies memory requirements
+#
+# 6. Output Structure:
+#    outputDirectory/
+#    ├── ElementAElementB/
+#    │   ├── best.xyz                    # Best structure found
+#    │   ├── best.txt                    # Best structure (Diamond format)
+#    │   ├── historical_best.txt         # Historical best for this composition
+#    │   ├── 1_best_energy_per_generation.txt  # Run 1 convergence
+#    │   ├── 2_best_energy_per_generation.txt  # Run 2 convergence
+#    │   └── ...
+#    └── all_compositions_summary.txt    # Summary when runAllCompositions=true

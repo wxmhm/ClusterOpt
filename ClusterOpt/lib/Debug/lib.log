@@ -1,0 +1,3 @@
+﻿cl : 命令行 warning D9035: “Gm”选项已否决，并将在将来的版本中移除
+  lbfgs.c
+  lib.vcxproj -> C:\Users\37869\Desktop\code\BinaryAlloyClusterOpt_Thread\Debug\Cluster_debug.lib
