@@ -4,7 +4,7 @@
 #include "../include/FinnisSinclairPotential.h"
 #include "../include/SuttonChenPotential.h"
 #include "../include/LocalOptimizer.h"
-#include "../include/IDE.h"
+#include "../include/CDE.h"
 #include "../include/SaNSDE.h"
 #include "../include/pso.h"
 #include "../include/ResultManager.h"
@@ -18,7 +18,7 @@ void printUsage(const char* programName) {
     std::cout << "  -atoms <n>             Total number of atoms" << std::endl;
     std::cout << "  -composition <nA>      Number of element A atoms" << std::endl;
     std::cout << "  -elements <A> <B>      Element symbols" << std::endl;
-    std::cout << "  -algorithm <IDE|SaNSDE|PSO> Select optimization algorithm" << std::endl;
+    std::cout << "  -algorithm <CDE|SaNSDE|PSO> Select optimization algorithm" << std::endl;
     std::cout << "  -potential <Gupta|FinnisSinclair|SuttonChen> Select potential type" << std::endl;
     std::cout << "  -generations <n>       Maximum generations" << std::endl;
     std::cout << "  -runs <n>              Number of independent runs" << std::endl;
@@ -36,8 +36,8 @@ BinaryAlloyCluster runSingleOptimization(
 
     BinaryAlloyCluster best = initial;
 
-    if (config.algorithm == AlgorithmType::IDE) {
-        IDE optimizer(config.ideParams, potential, localOptimizer);
+    if (config.algorithm == AlgorithmType::CDE) {
+        CDE optimizer(config.cdeParams, potential, localOptimizer);
         best = optimizer.optimize(initial, resultManager);
     }
     else if (config.algorithm == AlgorithmType::SaNSDE) {
@@ -72,7 +72,7 @@ CompositionResult runOptimizationForComposition(
 
     std::cout << "\n========================================" << std::endl;
     std::cout << "Optimizing: " << config.elementA << nA << config.elementB << nB << std::endl;
-    std::cout << "Algorithm: " << (config.algorithm == AlgorithmType::IDE ? "IDE" :
+    std::cout << "Algorithm: " << (config.algorithm == AlgorithmType::CDE ? "CDE" :
         config.algorithm == AlgorithmType::SaNSDE ? "SaNSDE" : "PSO") << std::endl;
     std::cout << "========================================" << std::endl;
 
@@ -243,8 +243,8 @@ int main(int argc, char* argv[]) {
         }
         else if (arg == "-algorithm" && i + 1 < argc) {
             std::string alg = argv[++i];
-            if (alg == "IDE" || alg == "ide") {
-                config.algorithm = AlgorithmType::IDE;
+            if (alg == "CDE" || alg == "cde") {
+                config.algorithm = AlgorithmType::CDE;
             }
             else if (alg == "SaNSDE" || alg == "sansde") {
                 config.algorithm = AlgorithmType::SaNSDE;
@@ -259,7 +259,7 @@ int main(int argc, char* argv[]) {
         }
         else if (arg == "-generations" && i + 1 < argc) {
             int gens = std::atoi(argv[++i]);
-            config.ideParams.maxGenerations = gens;
+            config.cdeParams.maxGenerations = gens;
             config.sansdeParams.maxGenerations = gens;
         }
         else if (arg == "-runs" && i + 1 < argc) {

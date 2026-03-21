@@ -10,7 +10,7 @@ A C++ implementation of evolutionary algorithms for optimizing binary alloy nano
   - **Sutton-Chen Potential**: Alternative for FCC metals
 
 - **Three Optimization Algorithms:**
-  - **IDE**: Improved Differential Evolution with multiple mutation strategies
+  - **CDE**: Improved Differential Evolution with multiple mutation strategies
   - **SaNSDE**: Self-adaptive Differential Evolution with Neighborhood Search
   - **PSO**: Particle Swarm Optimization
 
@@ -53,10 +53,10 @@ potentialType=Gupta
 potentialFile=data/gupta_PtCo.txt
 
 # Algorithm settings
-algorithm=IDE
-ide.populationSize=40
-ide.maxGenerations=200
-ide.useLocalSearch=true
+algorithm=CDE
+CDE.populationSize=40
+CDE.maxGenerations=200
+CDE.useLocalSearch=true
 
 # Run control
 numRuns=10
@@ -138,7 +138,7 @@ BinaryAlloyOptimizer.exe -potential FinnisSinclair ^
 - `-atoms <n>` - Total number of atoms
 - `-composition <nA>` - Number of element A atoms
 - `-elements <A> <B>` - Element symbols
-- `-algorithm <type>` - IDE, SaNSDE, or PSO
+- `-algorithm <type>` - CDE, SaNSDE, or PSO
 - `-generations <n>` - Maximum generations
 - `-runs <n>` - Number of independent runs
 - `-allcompositions` - Run all possible compositions
@@ -157,10 +157,10 @@ elementA=Pt
 elementB=Co
 potentialType=Gupta
 potentialFile=data/gupta_PtCo.txt
-algorithm=IDE
-ide.populationSize=40
-ide.maxGenerations=200
-ide.useLocalSearch=true
+algorithm=CDE
+CDE.populationSize=40
+CDE.maxGenerations=200
+CDE.useLocalSearch=true
 numRuns=50
 ```
 
@@ -176,8 +176,8 @@ elementA=Fe
 elementB=Cr
 potentialType=FinnisSinclair
 potentialFile=data/fs_FeCr.txt
-algorithm=IDE
-ide.maxGenerations=300
+algorithm=CDE
+CDE.maxGenerations=300
 numRuns=10
 ```
 
@@ -274,7 +274,7 @@ For each composition (e.g., `results/Pt19Co19/`):
 | `energy.txt` | Population energies |
 | `all_compositions_summary.txt` | Summary (if runAllCompositions=true) |
 
-## 🔬 Interatomic Potentials Guide
+## 🔬 Interatomic Potentials GuCDE
 
 ### Which Potential to Use?
 
@@ -373,18 +373,18 @@ numElementA=19
 numElementB=19
 elementA=Pt
 elementB=Co
-algorithm=IDE                    # IDE, SaNSDE, PSO
+algorithm=CDE                    # CDE, SaNSDE, PSO
 ```
 
-### IDE Parameters
+### CDE Parameters
 
 ```ini
-ide.populationSize=40            # Population per sub-population
-ide.maxGenerations=200           # Max generations
-ide.exchangeInterval=20          # Population exchange interval
-ide.useLocalSearch=true          # Enable L-BFGS
-ide.localSearchFrequency=1       # Local search every N evals
-ide.useMultiPopulation=true      # Multiple sub-populations
+CDE.populationSize=40            # Population per sub-population
+CDE.maxGenerations=200           # Max generations
+CDE.exchangeInterval=20          # Population exchange interval
+CDE.useLocalSearch=true          # Enable L-BFGS
+CDE.localSearchFrequency=1       # Local search every N evals
+CDE.useMultiPopulation=true      # Multiple sub-populations
 ```
 
 ### SaNSDE Parameters
@@ -479,11 +479,6 @@ Add: $(ProjectDir)lib\lbfgs.lib
 2. **Finnis-Sinclair**: Finnis & Sinclair (1984), *Phil. Mag. A*, 50, 45-55
 3. **Sutton-Chen**: Sutton & Chen (1990), *Phil. Mag. Lett.*, 61, 139-146
 
-### Algorithms
-
-1. **IDE**: Karaboga & Ökdem (2004), *J. Global Optim.*, 29, 365-385
-2. **SaNSDE**: Yang et al. (2008), *IEEE Trans. Evol. Comput.*, 12, 71-90
-
 ## 📝 Version History
 
 ### v2.0 (Current)
@@ -496,7 +491,7 @@ Add: $(ProjectDir)lib\lbfgs.lib
 
 ### v1.0
 - Initial release with Gupta potential
-- IDE and SaNSDE algorithms
+- CDE and SaNSDE algorithms
 - Basic configuration system
 
 ## 📄 License

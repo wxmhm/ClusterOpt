@@ -7,29 +7,29 @@
 #include <thread>
 #include <mutex>
 
-enum IDE_MutationStrategy {
-    IDE_RAND1,
-    IDE_RAND2,
-    IDE_BEST1,
-    IDE_BEST2,
-    IDE_RAND_TO_BEST1
+enum CDE_MutationStrategy {
+    CDE_RAND1,
+    CDE_RAND2,
+    CDE_BEST1,
+    CDE_BEST2,
+    CDE_RAND_TO_BEST1
 };
 
-struct IDE_Individual {
+struct CDE_Individual {
     BinaryAlloyCluster cluster;
     double energy;
 
-    IDE_Individual(int nA, int nB, const std::string& elemA, const std::string& elemB)
+    CDE_Individual(int nA, int nB, const std::string& elemA, const std::string& elemB)
         : cluster(nA, nB, elemA, elemB), energy(1e10) {}
 };
 
-class IDE_Population {
+class CDE_Population {
 private:
-    IDE_MutationStrategy strategy;
-    std::vector<IDE_Individual> population;
-    std::vector<IDE_Individual> mutantPopulation;
-    std::vector<IDE_Individual> trialPopulation;
-    IDE_Individual bestIndividual;
+    CDE_MutationStrategy strategy;
+    std::vector<CDE_Individual> population;
+    std::vector<CDE_Individual> mutantPopulation;
+    std::vector<CDE_Individual> trialPopulation;
+    CDE_Individual bestIndividual;
 
     PotentialBase* potential;
     LocalOptimizer* localOptimizer;
@@ -42,7 +42,7 @@ private:
     int localSearchCount;
 
 public:
-    IDE_Population(IDE_MutationStrategy strat, int popSize,
+    CDE_Population(CDE_MutationStrategy strat, int popSize,
         const BinaryAlloyCluster& initial,
         PotentialBase* pot, LocalOptimizer* opt);
     void evolve();
@@ -56,11 +56,11 @@ public:
         BinaryAlloyCluster& child1,
         BinaryAlloyCluster& child2);
 
-    void receiveIndividual(const IDE_Individual& ind);
-    const IDE_Individual& getBestIndividual() const { return bestIndividual; }
+    void receiveIndividual(const CDE_Individual& ind);
+    const CDE_Individual& getBestIndividual() const { return bestIndividual; }
 };
 
-class IDE {
+class CDE {
 public:
     struct Parameters {
         int populationSize = 30;
@@ -74,8 +74,8 @@ public:
 
 private:
     Parameters params;
-    std::vector<std::unique_ptr<IDE_Population>> populations;
-    IDE_Individual globalBest;
+    std::vector<std::unique_ptr<CDE_Population>> populations;
+    CDE_Individual globalBest;
     PotentialBase* potential;
     LocalOptimizer* localOptimizer;
 
@@ -85,7 +85,7 @@ private:
     std::mutex globalBestMutex;
 
 public:
-    IDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt);
+    CDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt);
 
     BinaryAlloyCluster optimize(const BinaryAlloyCluster& initial,
         ResultManager* resultManager = nullptr);
@@ -93,8 +93,8 @@ public:
     void initialize(const BinaryAlloyCluster& initial);
     void evolve();
     void exchangeBestIndividuals();
-    void updateGlobalBest(const IDE_Individual& candidate);
+    void updateGlobalBest(const CDE_Individual& candidate);
 
-    const IDE_Individual& getBestIndividual() const { return globalBest; }
+    const CDE_Individual& getBestIndividual() const { return globalBest; }
     int getGeneration() const { return generation; }
 };

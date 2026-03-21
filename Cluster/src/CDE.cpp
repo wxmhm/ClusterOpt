@@ -1,8 +1,8 @@
-﻿#include "../include/IDE.h"
+﻿#include "../include/CDE.h"
 
-// ==================== IDE_Population Implementation ====================
+// ==================== CDE_Population Implementation ====================
 
-IDE_Population::IDE_Population(IDE_MutationStrategy strat, int popSize,
+CDE_Population::CDE_Population(CDE_MutationStrategy strat, int popSize,
     const BinaryAlloyCluster& initial,
     PotentialBase* pot, LocalOptimizer* opt)
     : strategy(strat), populationSize(popSize), potential(pot),
@@ -56,7 +56,7 @@ IDE_Population::IDE_Population(IDE_MutationStrategy strat, int popSize,
     }
 }
 
-double IDE_Population::evaluateCluster(BinaryAlloyCluster& cluster) {
+double CDE_Population::evaluateCluster(BinaryAlloyCluster& cluster) {
     if (localOptimizer) {
         localOptimizer->optimize(cluster);
     }
@@ -66,7 +66,7 @@ double IDE_Population::evaluateCluster(BinaryAlloyCluster& cluster) {
     return energy;
 }
 
-void IDE_Population::evolve() {
+void CDE_Population::evolve() {
     mutation();
     crossover();
     selection();
@@ -75,12 +75,12 @@ void IDE_Population::evolve() {
     }
 }
 
-void IDE_Population::mutation() {
+void CDE_Population::mutation() {
     for (int i = 0; i < populationSize; ++i) {
         double F = RandomGenerator::uniform(0.1, 0.9);
 
         switch (strategy) {
-        case IDE_RAND1: {
+        case CDE_RAND1: {
             auto indices = RandomGenerator::permutation(populationSize, 3);
             auto& coords = mutantPopulation[i].cluster.getCoordinates();
             const auto& coords0 = population[indices[0]].cluster.getCoordinates();
@@ -93,7 +93,7 @@ void IDE_Population::mutation() {
             break;
         }
 
-        case IDE_BEST1: {
+        case CDE_BEST1: {
             auto indices = RandomGenerator::permutation(populationSize, 2);
             auto& coords = mutantPopulation[i].cluster.getCoordinates();
             const auto& bestCoords = bestIndividual.cluster.getCoordinates();
@@ -106,7 +106,7 @@ void IDE_Population::mutation() {
             break;
         }
 
-        case IDE_RAND2: {
+        case CDE_RAND2: {
             auto indices = RandomGenerator::permutation(populationSize, 5);
             auto& coords = mutantPopulation[i].cluster.getCoordinates();
             const auto& coords0 = population[indices[0]].cluster.getCoordinates();
@@ -121,7 +121,7 @@ void IDE_Population::mutation() {
             break;
         }
 
-        case IDE_BEST2: {
+        case CDE_BEST2: {
             auto indices = RandomGenerator::permutation(populationSize, 4);
             auto& coords = mutantPopulation[i].cluster.getCoordinates();
             const auto& bestCoords = bestIndividual.cluster.getCoordinates();
@@ -136,7 +136,7 @@ void IDE_Population::mutation() {
             break;
         }
 
-        case IDE_RAND_TO_BEST1: {
+        case CDE_RAND_TO_BEST1: {
             auto indices = RandomGenerator::permutation(populationSize, 2);
             auto& coords = mutantPopulation[i].cluster.getCoordinates();
             const auto& currentCoords = population[i].cluster.getCoordinates();
@@ -154,7 +154,7 @@ void IDE_Population::mutation() {
     }
 }
 
-void IDE_Population::crossover() {
+void CDE_Population::crossover() {
     for (int i = 0; i < populationSize; ++i) {
         double CR = RandomGenerator::uniform();
 
@@ -190,7 +190,7 @@ void IDE_Population::crossover() {
     }
 }
 
-void IDE_Population::selection() {
+void CDE_Population::selection() {
     for (int i = 0; i < populationSize; ++i) {
         if (trialPopulation[i].energy < population[i].energy) {
             population[i] = trialPopulation[i];
@@ -202,7 +202,7 @@ void IDE_Population::selection() {
     }
 }
 
-void IDE_Population::swapAtoms() {
+void CDE_Population::swapAtoms() {
     for (int idx = 0; idx < populationSize; ++idx) {
 
         if (fabs(population[idx].energy - bestIndividual.energy) < 0.2 && RandomGenerator::uniform() < 0.9) {
@@ -243,7 +243,7 @@ void IDE_Population::swapAtoms() {
     }
 }
 
-void IDE_Population::sphereCutSplice(const BinaryAlloyCluster& parent1,
+void CDE_Population::sphereCutSplice(const BinaryAlloyCluster& parent1,
     const BinaryAlloyCluster& parent2,
     BinaryAlloyCluster& child1,
     BinaryAlloyCluster& child2) {
@@ -306,7 +306,7 @@ void IDE_Population::sphereCutSplice(const BinaryAlloyCluster& parent1,
 }
 
 
-void IDE_Population::receiveIndividual(const IDE_Individual& ind) {
+void CDE_Population::receiveIndividual(const CDE_Individual& ind) {
     int worstIdx = 0;
     double worstEnergy = population[0].energy;
 
@@ -327,30 +327,30 @@ void IDE_Population::receiveIndividual(const IDE_Individual& ind) {
 }
 
 
-// ==================== IDE Main Class Implementation ====================
+// ==================== CDE Main Class Implementation ====================
 
-IDE::IDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt)
+CDE::CDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt)
     : params(p), potential(pot), localOptimizer(opt),
     generation(0), evaluationCount(0),
     globalBest(1, 0, "A", "B") {
 }
 
-void IDE::initialize(const BinaryAlloyCluster& initial) {
+void CDE::initialize(const BinaryAlloyCluster& initial) {
     populations.clear();
 
     if (params.useMultiPopulation) {
-        populations.emplace_back(std::make_unique<IDE_Population>(
-            IDE_RAND1, params.populationSize, initial, potential, localOptimizer));
+        populations.emplace_back(std::make_unique<CDE_Population>(
+            CDE_RAND1, params.populationSize, initial, potential, localOptimizer));
 
-        populations.emplace_back(std::make_unique<IDE_Population>(
-            IDE_BEST1, params.populationSize, initial, potential, localOptimizer));
+        populations.emplace_back(std::make_unique<CDE_Population>(
+            CDE_BEST1, params.populationSize, initial, potential, localOptimizer));
 
-        populations.emplace_back(std::make_unique<IDE_Population>(
-            IDE_RAND_TO_BEST1, params.populationSize, initial, potential, localOptimizer));
+        populations.emplace_back(std::make_unique<CDE_Population>(
+            CDE_RAND_TO_BEST1, params.populationSize, initial, potential, localOptimizer));
     }
     else {
-        populations.emplace_back(std::make_unique<IDE_Population>(
-            IDE_RAND1, params.populationSize, initial, potential, localOptimizer));
+        populations.emplace_back(std::make_unique<CDE_Population>(
+            CDE_RAND1, params.populationSize, initial, potential, localOptimizer));
     }
 
     globalBest = populations[0]->getBestIndividual();
@@ -361,14 +361,14 @@ void IDE::initialize(const BinaryAlloyCluster& initial) {
     }
 }
 
-void IDE::updateGlobalBest(const IDE_Individual& candidate) {
+void CDE::updateGlobalBest(const CDE_Individual& candidate) {
     std::lock_guard<std::mutex> lock(globalBestMutex);
     if (candidate.energy < globalBest.energy) {
         globalBest = candidate;
     }
 }
 
-void IDE::evolve() {
+void CDE::evolve() {
     generation++;
 
     if (params.useThreading && params.useMultiPopulation) {
@@ -402,7 +402,7 @@ void IDE::evolve() {
     }
 }
 
-void IDE::exchangeBestIndividuals() {
+void CDE::exchangeBestIndividuals() {
     for (size_t i = 0; i < populations.size(); ++i) {
         const auto& bestInd = populations[i]->getBestIndividual();
         for (size_t j = 0; j < populations.size(); ++j) {
@@ -413,7 +413,7 @@ void IDE::exchangeBestIndividuals() {
     }
 }
 
-BinaryAlloyCluster IDE::optimize(const BinaryAlloyCluster& initial,
+BinaryAlloyCluster CDE::optimize(const BinaryAlloyCluster& initial,
     ResultManager* resultManager) {
     initialize(initial);
 

@@ -62,29 +62,29 @@ runAllCompositions=true
 
 # ==================== ALGORITHM SELECTION ====================
 
-# Choose optimization algorithm: IDE, SaNSDE, or PSO
-algorithm=IDE
+# Choose optimization algorithm: CDE, SaNSDE, or PSO
+algorithm=CDE
 
-# ==================== IDE ALGORITHM PARAMETERS ====================
-# These parameters are used when algorithm=IDE
+# ==================== CDE ALGORITHM PARAMETERS ====================
+# These parameters are used when algorithm=CDE
 
 # Population size for each sub-population
-ide.populationSize=30
+cde.populationSize=30
 
 # Maximum number of generations
-ide.maxGenerations=100
+cde.maxGenerations=100
 
 # Interval for exchanging best individuals between populations
-ide.exchangeInterval=20
+cde.exchangeInterval=20
 
 # Whether to use local search optimization
-ide.useLocalSearch=true
+cde.useLocalSearch=true
 
 # Frequency of local search (every N evaluations)
-ide.localSearchFrequency=1
+cde.localSearchFrequency=1
 
 # Use multiple populations with different strategies
-ide.useMultiPopulation=true
+cde.useMultiPopulation=true
 
 # ==================== SaNSDE ALGORITHM PARAMETERS ====================
 # These parameters are used when algorithm=SaNSDE
@@ -155,7 +155,7 @@ stallGenerations=100
 #    - SuttonChen: Alternative for FCC metals (Au, Pt, Pd, Cu, Ag, Ni, etc.)
 #
 # 2. Algorithm Selection:
-#    - IDE: Island Differential Evolution with multiple populations
+#    - CDE: C Differential Evolution with multiple populations
 #    - SaNSDE: Self-adaptive Differential Evolution with Neighborhood Search
 #    - PSO: Particle Swarm Optimization (experimental)
 #

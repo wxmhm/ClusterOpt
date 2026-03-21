@@ -1,10 +1,10 @@
 #pragma once
 #include "Common.h"
-#include "IDE.h"
+#include "CDE.h"
 #include "SaNSDE.h"
 
 enum class AlgorithmType {
-    IDE,
+    CDE,
     SaNSDE,
     PSO
 };
@@ -27,13 +27,13 @@ public:
         std::string initialStructuresDir = "";
 
         // Algorithm selection
-        AlgorithmType algorithm = AlgorithmType::IDE;
+        AlgorithmType algorithm = AlgorithmType::CDE;
 
         // Potential type selection
         PotentialType potentialType = PotentialType::Gupta;
 
-        // IDE-specific parameters
-        IDE::Parameters ideParams;
+        // CDE-specific parameters
+        CDE::Parameters cdeParams;
 
         // SaNSDE-specific parameters
         SaNSDE::Parameters sansdeParams;

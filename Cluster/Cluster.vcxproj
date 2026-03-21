@@ -77,7 +77,7 @@
     <ClInclude Include="include\Configuration.h" />
     <ClInclude Include="include\FinnisSinclairPotential.h" />
     <ClInclude Include="include\GuptaPotential.h" />
-    <ClInclude Include="include\IDE.h" />
+    <ClInclude Include="include\CDE.h" />
     <ClInclude Include="include\LocalOptimizer.h" />
     <ClInclude Include="include\NELbfgs.h" />
     <ClInclude Include="include\pso.h" />
@@ -91,7 +91,7 @@
     <ClCompile Include="src\Configuration.cpp" />
     <ClCompile Include="src\FinnisSinclairPotential.cpp" />
     <ClCompile Include="src\GuptaPotential.cpp" />
-    <ClCompile Include="src\IDE.cpp" />
+    <ClCompile Include="src\CDE.cpp" />
     <ClCompile Include="src\LocalOptimizer.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\NELbfgs.cpp" />

@@ -39,7 +39,7 @@
     <ClInclude Include="include\SaNSDE.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\IDE.h">
+    <ClInclude Include="include\CDE.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="include\pso.h">
@@ -80,7 +80,7 @@
     <ClCompile Include="src\SaNSDE.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\IDE.cpp">
+    <ClCompile Include="src\CDE.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\pso.cpp">

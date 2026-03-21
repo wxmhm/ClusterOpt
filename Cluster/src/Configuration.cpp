@@ -1,5 +1,5 @@
 #include "../include/Configuration.h"
-#include <fstream>
+#include <fstream>cdeParams
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -16,15 +16,15 @@ Configuration::SystemConfig Configuration::getDefaultConfig() {
     config.elementB = "Co";
 
     // Algorithm selection
-    config.algorithm = AlgorithmType::IDE;
+    config.algorithm = AlgorithmType::CDE;
 
-    // IDE parameters
-    config.ideParams.populationSize = 40;
-    config.ideParams.maxGenerations = 200;
-    config.ideParams.exchangeInterval = 20;
-    config.ideParams.useLocalSearch = true;
-    config.ideParams.localSearchFrequency = 1;
-    config.ideParams.useMultiPopulation = true;
+    // CDE parameters
+    config.cdeParams.populationSize = 40;
+    config.cdeParams.maxGenerations = 200;
+    config.cdeParams.exchangeInterval = 20;
+    config.cdeParams.useLocalSearch = true;
+    config.cdeParams.localSearchFrequency = 1;
+    config.cdeParams.useMultiPopulation = true;
 
     // SaNSDE parameters
     config.sansdeParams.populationSize = 40;
@@ -119,7 +119,7 @@ bool Configuration::loadFromFile(const std::string& filename, SystemConfig& conf
 
                 // Algorithm selection
                 else if (key == "algorithm") {
-                    if (value == "IDE" || value == "ide") config.algorithm = AlgorithmType::IDE;
+                    if (value == "CDE" || value == "cde") config.algorithm = AlgorithmType::CDE;
                     else if (value == "SaNSDE" || value == "sansde") config.algorithm = AlgorithmType::SaNSDE;
                     else if (value == "PSO" || value == "pso") config.algorithm = AlgorithmType::PSO;
                 }
@@ -129,13 +129,13 @@ bool Configuration::loadFromFile(const std::string& filename, SystemConfig& conf
                     config.potentialType = stringToPotentialType(value);
                 }
 
-                // IDE parameters
-                else if (key == "ide.populationSize") config.ideParams.populationSize = std::stoi(value);
-                else if (key == "ide.maxGenerations") config.ideParams.maxGenerations = std::stoi(value);
-                else if (key == "ide.exchangeInterval") config.ideParams.exchangeInterval = std::stoi(value);
-                else if (key == "ide.useLocalSearch") config.ideParams.useLocalSearch = (value == "true" || value == "1");
-                else if (key == "ide.localSearchFrequency") config.ideParams.localSearchFrequency = std::stoi(value);
-                else if (key == "ide.useMultiPopulation") config.ideParams.useMultiPopulation = (value == "true" || value == "1");
+                // CDE parameters
+                else if (key == "cde.populationSize") config.cdeParams.populationSize = std::stoi(value);
+                else if (key == "cde.maxGenerations") config.cdeParams.maxGenerations = std::stoi(value);
+                else if (key == "cde.exchangeInterval") config.cdeParams.exchangeInterval = std::stoi(value);
+                else if (key == "cde.useLocalSearch") config.cdeParams.useLocalSearch = (value == "true" || value == "1");
+                else if (key == "cde.localSearchFrequency") config.cdeParams.localSearchFrequency = std::stoi(value);
+                else if (key == "cde.useMultiPopulation") config.cdeParams.useMultiPopulation = (value == "true" || value == "1");
 
                 // SaNSDE parameters
                 else if (key == "sansde.populationSize") config.sansdeParams.populationSize = std::stoi(value);
@@ -194,20 +194,20 @@ bool Configuration::saveToFile(const std::string& filename, const SystemConfig& 
     file << "elementA=" << config.elementA << "\n";
     file << "elementB=" << config.elementB << "\n\n";
 
-    file << "# Algorithm Selection (IDE, SaNSDE, or PSO)\n";
-    file << "algorithm=" << (config.algorithm == AlgorithmType::IDE ? "IDE" : 
+    file << "# Algorithm Selection (CDE, SaNSDE, or PSO)\n";
+    file << "algorithm=" << (config.algorithm == AlgorithmType::CDE ? "CDE" : 
                              config.algorithm == AlgorithmType::SaNSDE ? "SaNSDE" : "PSO") << "\n\n";
     
     file << "# Potential Type Selection (Gupta, FinnisSinclair, SuttonChen)\n";
     file << "potentialType=" << potentialTypeToString(config.potentialType) << "\n\n";
 
-    file << "# IDE Algorithm Parameters\n";
-    file << "ide.populationSize=" << config.ideParams.populationSize << "\n";
-    file << "ide.maxGenerations=" << config.ideParams.maxGenerations << "\n";
-    file << "ide.exchangeInterval=" << config.ideParams.exchangeInterval << "\n";
-    file << "ide.useLocalSearch=" << (config.ideParams.useLocalSearch ? "true" : "false") << "\n";
-    file << "ide.localSearchFrequency=" << config.ideParams.localSearchFrequency << "\n";
-    file << "ide.useMultiPopulation=" << (config.ideParams.useMultiPopulation ? "true" : "false") << "\n\n";
+    file << "# CDE Algorithm Parameters\n";
+    file << "cde.populationSize=" << config.cdeParams.populationSize << "\n";
+    file << "cde.maxGenerations=" << config.cdeParams.maxGenerations << "\n";
+    file << "cde.exchangeInterval=" << config.cdeParams.exchangeInterval << "\n";
+    file << "cde.useLocalSearch=" << (config.cdeParams.useLocalSearch ? "true" : "false") << "\n";
+    file << "cde.localSearchFrequency=" << config.cdeParams.localSearchFrequency << "\n";
+    file << "cde.useMultiPopulation=" << (config.cdeParams.useMultiPopulation ? "true" : "false") << "\n\n";
 
     file << "# SaNSDE Algorithm Parameters\n";
     file << "sansde.populationSize=" << config.sansdeParams.populationSize << "\n";
@@ -248,15 +248,15 @@ void Configuration::printConfig(const SystemConfig& config) {
     std::cout << "\n=== Configuration Settings ===\n";
     std::cout << "Cluster: " << config.elementA << config.numElementA
         << config.elementB << config.numElementB << "\n";
-    std::cout << "Algorithm: " << (config.algorithm == AlgorithmType::IDE ? "IDE" : 
+    std::cout << "Algorithm: " << (config.algorithm == AlgorithmType::CDE ? "CDE" : 
                                     config.algorithm == AlgorithmType::SaNSDE ? "SaNSDE" : "PSO") << "\n";
     std::cout << "Potential Type:       " << potentialTypeToString(config.potentialType) << std::endl;
 
-    if (config.algorithm == AlgorithmType::IDE) {
-        std::cout << "IDE Parameters:\n";
-        std::cout << "  Population Size: " << config.ideParams.populationSize << "\n";
-        std::cout << "  Max Generations: " << config.ideParams.maxGenerations << "\n";
-        std::cout << "  Multi-Population: " << (config.ideParams.useMultiPopulation ? "Yes" : "No") << "\n";
+    if (config.algorithm == AlgorithmType::CDE) {
+        std::cout << "CDE Parameters:\n";
+        std::cout << "  Population Size: " << config.cdeParams.populationSize << "\n";
+        std::cout << "  Max Generations: " << config.cdeParams.maxGenerations << "\n";
+        std::cout << "  Multi-Population: " << (config.cdeParams.useMultiPopulation ? "Yes" : "No") << "\n";
     }
     else {
         std::cout << "SaNSDE Parameters:\n";
@@ -266,8 +266,8 @@ void Configuration::printConfig(const SystemConfig& config) {
         std::cout << "  CR range: [" << config.sansdeParams.CR_min << ", " << config.sansdeParams.CR_max << "]\n";
     }
 
-    std::cout << "Local Search: " << ((config.algorithm == AlgorithmType::IDE ?
-        config.ideParams.useLocalSearch :
+    std::cout << "Local Search: " << ((config.algorithm == AlgorithmType::CDE ?
+        config.cdeParams.useLocalSearch :
         config.sansdeParams.useLocalSearch) ? "Enabled" : "Disabled") << "\n";
     std::cout << "Number of Runs: " << config.numRuns << "\n";
     std::cout << "Run All Compositions: " << (config.runAllCompositions ? "Yes" : "No") << "\n";
