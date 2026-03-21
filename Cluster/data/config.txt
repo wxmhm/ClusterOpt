@@ -7,27 +7,27 @@
 # ==================== GENERAL PARAMETERS ====================
 
 # Total number of atoms in the cluster
-totalAtoms=38
+totalAtoms=13
 
 # Composition (numElementA + numElementB must equal totalAtoms)
-numElementA=38
+numElementA=13
 numElementB=0
 
 # Element symbols (any valid element symbol)
 elementA=Pt
-elementB=Ni
+elementB=Cu
 
 # ==================== POTENTIAL SELECTION ====================
 
 # Select potential type: Gupta, FinnisSinclair, or SuttonChen
-potentialType=SuttonChen
+potentialType=FinnisSinclair
 
 # Potential parameters file
-# For Gupta: data/gupta_PtPd.txt
-# For Finnis-Sinclair: data/fs_PtPd.txt
-# For Sutton-Chen: data/sc_PtPd.txt
+# For Gupta: data/gupta_PtCu.txt
+# For Finnis-Sinclair: data/fs_PtCu.txt
+# For Sutton-Chen: data/sc_PtCu.txt
 
-potentialFile=data/sc_PtNi.txt
+potentialFile=data/fs_PtCu.txt
 
 
 
@@ -54,7 +54,7 @@ potentialFile=data/sc_PtNi.txt
 # ==================== RUN CONTROL ====================
 
 # Number of independent runs for each composition
-numRuns=1
+numRuns=3
 
 # Run all possible compositions for the given totalAtoms
 # If true, will optimize all combinations from (N,0) to (0,N)
