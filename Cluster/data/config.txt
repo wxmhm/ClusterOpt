@@ -155,7 +155,7 @@ stallGenerations=100
 #    - SuttonChen: Alternative for FCC metals (Au, Pt, Pd, Cu, Ag, Ni, etc.)
 #
 # 2. Algorithm Selection:
-#    - CDE: C Differential Evolution with multiple populations
+#    - CDE: Collaborative Differential Evolution with multiple populations
 #    - SaNSDE: Self-adaptive Differential Evolution with Neighborhood Search
 #    - PSO: Particle Swarm Optimization (experimental)
 #

@@ -10,7 +10,7 @@ A C++ implementation of evolutionary algorithms for optimizing binary alloy nano
   - **Sutton-Chen Potential**: Alternative for FCC metals
 
 - **Three Optimization Algorithms:**
-  - **CDE**: Improved Differential Evolution with multiple mutation strategies
+  - **CDE**: Collaborative Differential Evolution with multiple mutation strategies
   - **SaNSDE**: Self-adaptive Differential Evolution with Neighborhood Search
   - **PSO**: Particle Swarm Optimization
 
