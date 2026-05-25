@@ -4,14 +4,7 @@ Evolutionary algorithms (CDE, SaNSDE) for optimizing binary alloy nanoparticle s
 
 ## Quick Start
 
-### Build
-
-```bash
-# VS 2022 command line:
-"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe" Cluster.sln -p:Configuration=Release
-```
-
-Or open `Cluster.sln` in Visual Studio 2019+, build as Release.
+Open `Cluster.sln` in Visual Studio 2019+ and build as Release.
 
 ### Configure
 
