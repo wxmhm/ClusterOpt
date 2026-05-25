@@ -87,12 +87,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BinaryAlloyCluster.cpp" />
-    <ClCompile Include="src\Common.cpp" />
     <ClCompile Include="src\Configuration.cpp" />
     <ClCompile Include="src\FinnisSinclairPotential.cpp" />
     <ClCompile Include="src\GuptaPotential.cpp" />
     <ClCompile Include="src\CDE.cpp" />
-    <ClCompile Include="src\LocalOptimizer.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\NELbfgs.cpp" />
     <ClCompile Include="src\pso.cpp" />

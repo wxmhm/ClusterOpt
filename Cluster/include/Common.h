@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <deque>
 #include <filesystem>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -28,7 +29,10 @@ class RandomGenerator {
 private:
     static std::mt19937& getEngine() {
         static thread_local std::mt19937 engine(
-            static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count())
+            static_cast<unsigned int>(
+                std::chrono::steady_clock::now().time_since_epoch().count() ^
+                std::hash<std::thread::id>{}(std::this_thread::get_id())
+            )
         );
         return engine;
     }

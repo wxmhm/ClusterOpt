@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 Configuration::SystemConfig Configuration::getDefaultConfig() {
     SystemConfig config;
 
@@ -103,63 +104,66 @@ bool Configuration::loadFromFile(const std::string& filename, SystemConfig& conf
                 value.erase(0, value.find_first_not_of(" \t"));
                 value.erase(value.find_last_not_of(" \t") + 1);
 
-                // General parameters
-                if (key == "totalAtoms") config.totalAtoms = std::stoi(value);
-                else if (key == "numElementA") config.numElementA = std::stoi(value);
-                else if (key == "numElementB") config.numElementB = std::stoi(value);
-                else if (key == "elementA") config.elementA = value;
-                else if (key == "elementB") config.elementB = value;
+                try {
+                    // General parameters
+                    if (key == "totalAtoms") config.totalAtoms = std::stoi(value);
+                    else if (key == "numElementA") config.numElementA = std::stoi(value);
+                    else if (key == "elementA") config.elementA = value;
+                    else if (key == "elementB") config.elementB = value;
 
-                // Algorithm selection
-                else if (key == "algorithm") {
-                    if (value == "CDE" || value == "cde") config.algorithm = AlgorithmType::CDE;
-                    else if (value == "SaNSDE" || value == "sansde") config.algorithm = AlgorithmType::SaNSDE;
-                    else if (value == "PSO" || value == "pso") config.algorithm = AlgorithmType::PSO;
+                    // Algorithm selection
+                    else if (key == "algorithm") {
+                        if (value == "CDE" || value == "cde") config.algorithm = AlgorithmType::CDE;
+                        else if (value == "SaNSDE" || value == "sansde") config.algorithm = AlgorithmType::SaNSDE;
+                        else if (value == "PSO" || value == "pso") config.algorithm = AlgorithmType::PSO;
+                    }
+
+                    // Potential type selection
+                    else if (key == "potentialType") {
+                        config.potentialType = stringToPotentialType(value);
+                    }
+
+                    // CDE parameters
+                    else if (key == "cde.populationSize") config.cdeParams.populationSize = std::stoi(value);
+                    else if (key == "cde.maxGenerations") config.cdeParams.maxGenerations = std::stoi(value);
+                    else if (key == "cde.exchangeInterval") config.cdeParams.exchangeInterval = std::stoi(value);
+                    else if (key == "cde.useLocalSearch") config.cdeParams.useLocalSearch = (value == "true" || value == "1");
+                    else if (key == "cde.localSearchFrequency") config.cdeParams.localSearchFrequency = std::stoi(value);
+                    else if (key == "cde.useMultiPopulation") config.cdeParams.useMultiPopulation = (value == "true" || value == "1");
+                    else if (key == "cde.useThreading") config.cdeParams.useThreading = (value == "true" || value == "1");
+
+                    // SaNSDE parameters
+                    else if (key == "sansde.populationSize") config.sansdeParams.populationSize = std::stoi(value);
+                    else if (key == "sansde.maxGenerations") config.sansdeParams.maxGenerations = std::stoi(value);
+                    else if (key == "sansde.learningPeriod") config.sansdeParams.learningPeriod = std::stoi(value);
+                    else if (key == "sansde.F_min") config.sansdeParams.F_min = std::stod(value);
+                    else if (key == "sansde.F_max") config.sansdeParams.F_max = std::stod(value);
+                    else if (key == "sansde.CR_min") config.sansdeParams.CR_min = std::stod(value);
+                    else if (key == "sansde.CR_max") config.sansdeParams.CR_max = std::stod(value);
+                    else if (key == "sansde.p_min") config.sansdeParams.p_min = std::stod(value);
+                    else if (key == "sansde.neighborhoodSizeMin") config.sansdeParams.neighborhoodSizeMin = std::stoi(value);
+                    else if (key == "sansde.neighborhoodSizeMax") config.sansdeParams.neighborhoodSizeMax = std::stoi(value);
+                    else if (key == "sansde.memorySize") config.sansdeParams.memorySize = std::stoi(value);
+                    else if (key == "sansde.useLocalSearch") config.sansdeParams.useLocalSearch = (value == "true" || value == "1");
+                    else if (key == "sansde.localSearchFrequency") config.sansdeParams.localSearchFrequency = std::stoi(value);
+                    else if (key == "sansde.useThreading") config.sansdeParams.useThreading = (value == "true" || value == "1");
+
+                    // File and output parameters
+                    else if (key == "potentialFile") config.potentialFile = value;
+                    else if (key == "outputDirectory") config.outputDirectory = value;
+                    else if (key == "numRuns") config.numRuns = std::stoi(value);
+                    else if (key == "runAllCompositions") config.runAllCompositions = (value == "true" || value == "1");
+
+                    // Advanced options
+                    else if (key == "verbose") config.verbose = (value == "true" || value == "1");
+                } catch (const std::exception& e) {
+                    std::cerr << "Warning: Failed to parse config key '" << key << "': " << e.what() << std::endl;
                 }
-                
-                // Potential type selection
-                else if (key == "potentialType") {
-                    config.potentialType = stringToPotentialType(value);
-                }
-
-                // CDE parameters
-                else if (key == "cde.populationSize") config.cdeParams.populationSize = std::stoi(value);
-                else if (key == "cde.maxGenerations") config.cdeParams.maxGenerations = std::stoi(value);
-                else if (key == "cde.exchangeInterval") config.cdeParams.exchangeInterval = std::stoi(value);
-                else if (key == "cde.useLocalSearch") config.cdeParams.useLocalSearch = (value == "true" || value == "1");
-                else if (key == "cde.localSearchFrequency") config.cdeParams.localSearchFrequency = std::stoi(value);
-                else if (key == "cde.useMultiPopulation") config.cdeParams.useMultiPopulation = (value == "true" || value == "1");
-                else if (key == "cde.useThreading") config.cdeParams.useThreading = (value == "true" || value == "1");
-
-                // SaNSDE parameters
-                else if (key == "sansde.populationSize") config.sansdeParams.populationSize = std::stoi(value);
-                else if (key == "sansde.maxGenerations") config.sansdeParams.maxGenerations = std::stoi(value);
-                else if (key == "sansde.learningPeriod") config.sansdeParams.learningPeriod = std::stoi(value);
-                else if (key == "sansde.F_min") config.sansdeParams.F_min = std::stod(value);
-                else if (key == "sansde.F_max") config.sansdeParams.F_max = std::stod(value);
-                else if (key == "sansde.CR_min") config.sansdeParams.CR_min = std::stod(value);
-                else if (key == "sansde.CR_max") config.sansdeParams.CR_max = std::stod(value);
-                else if (key == "sansde.p_min") config.sansdeParams.p_min = std::stod(value);
-                else if (key == "sansde.neighborhoodSizeMin") config.sansdeParams.neighborhoodSizeMin = std::stoi(value);
-                else if (key == "sansde.neighborhoodSizeMax") config.sansdeParams.neighborhoodSizeMax = std::stoi(value);
-                else if (key == "sansde.memorySize") config.sansdeParams.memorySize = std::stoi(value);
-                else if (key == "sansde.useLocalSearch") config.sansdeParams.useLocalSearch = (value == "true" || value == "1");
-                else if (key == "sansde.localSearchFrequency") config.sansdeParams.localSearchFrequency = std::stoi(value);
-                else if (key == "sansde.useThreading") config.sansdeParams.useThreading = (value == "true" || value == "1");
-
-                // File and output parameters
-                else if (key == "potentialFile") config.potentialFile = value;
-                else if (key == "outputDirectory") config.outputDirectory = value;
-                else if (key == "numRuns") config.numRuns = std::stoi(value);
-                else if (key == "runAllCompositions") config.runAllCompositions = (value == "true" || value == "1");
-
-                // Advanced options
-                else if (key == "verbose") config.verbose = (value == "true" || value == "1");
             }
         }
     }
 
-    // Auto-calculate numElementB if not specified
+    // numElementB is always derived from totalAtoms - numElementA
     config.numElementB = config.totalAtoms - config.numElementA;
 
     file.close();
@@ -244,18 +248,16 @@ void Configuration::printConfig(const SystemConfig& config) {
         std::cout << "  Population Size: " << config.cdeParams.populationSize << "\n";
         std::cout << "  Max Generations: " << config.cdeParams.maxGenerations << "\n";
         std::cout << "  Multi-Population: " << (config.cdeParams.useMultiPopulation ? "Yes" : "No") << "\n";
+        std::cout << "Local Search: " << (config.cdeParams.useLocalSearch ? "Enabled" : "Disabled") << "\n";
     }
-    else {
+    else if (config.algorithm == AlgorithmType::SaNSDE) {
         std::cout << "SaNSDE Parameters:\n";
         std::cout << "  Population Size: " << config.sansdeParams.populationSize << "\n";
         std::cout << "  Max Generations: " << config.sansdeParams.maxGenerations << "\n";
         std::cout << "  F range: [" << config.sansdeParams.F_min << ", " << config.sansdeParams.F_max << "]\n";
         std::cout << "  CR range: [" << config.sansdeParams.CR_min << ", " << config.sansdeParams.CR_max << "]\n";
+        std::cout << "Local Search: " << (config.sansdeParams.useLocalSearch ? "Enabled" : "Disabled") << "\n";
     }
-
-    std::cout << "Local Search: " << ((config.algorithm == AlgorithmType::CDE ?
-        config.cdeParams.useLocalSearch :
-        config.sansdeParams.useLocalSearch) ? "Enabled" : "Disabled") << "\n";
     std::cout << "Number of Runs: " << config.numRuns << "\n";
     std::cout << "Run All Compositions: " << (config.runAllCompositions ? "Yes" : "No") << "\n";
     std::cout << "==============================\n\n";

@@ -56,16 +56,10 @@
     <ClCompile Include="src\BinaryAlloyCluster.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\Common.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="src\Configuration.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\GuptaPotential.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\LocalOptimizer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
