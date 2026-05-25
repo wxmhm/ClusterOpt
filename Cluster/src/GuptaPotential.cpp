@@ -70,41 +70,31 @@ bool GuptaPotential::loadParameters(const std::string& filename) {
     return false;
 }
 
-void GuptaPotential::setParameters(const GuptaParameters& aa,
-                                   const GuptaParameters& bb,
-                                   const GuptaParameters& ab) {
-    paramsAA = aa;
-    paramsBB = bb;
-    paramsAB = ab;
-}
-
 void GuptaPotential::setElements(const std::string& elemA, const std::string& elemB) {
     elementA = elemA;
     elementB = elemB;
 }
 
-void GuptaPotential::computeDistanceMatrix(const BinaryAlloyCluster& cluster) const {
+void GuptaPotential::computeDistanceMatrix(const BinaryAlloyCluster& cluster, std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    if (distanceMatrix.size() != static_cast<size_t>(n * n)) {
-        distanceMatrix.resize(n * n);
-    }
-    
+    dist.resize(n * n);
+
     const double* x = cluster.data();
     const double* y = x + n;
     const double* z = y + n;
-    
+
     for (int i = 0; i < n - 1; ++i) {
-        distanceMatrix[i * n + i] = 0.0;
+        dist[i * n + i] = 0.0;
         for (int j = i + 1; j < n; ++j) {
             double dx = x[i] - x[j];
             double dy = y[i] - y[j];
             double dz = z[i] - z[j];
             double r = std::sqrt(dx * dx + dy * dy + dz * dz);
-            distanceMatrix[i * n + j] = r;
-            distanceMatrix[j * n + i] = r;
+            dist[i * n + j] = r;
+            dist[j * n + i] = r;
         }
     }
-    distanceMatrix[n * n - 1] = 0.0;
+    dist[n * n - 1] = 0.0;
 }
 
 GuptaParameters GuptaPotential::getParameters(const BinaryAlloyCluster& cluster, int i, int j) const {
@@ -120,84 +110,83 @@ GuptaParameters GuptaPotential::getParameters(const BinaryAlloyCluster& cluster,
     }
 }
 
-double GuptaPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
+double GuptaPotential::calcEnergyWithDist(const BinaryAlloyCluster& cluster, const std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    computeDistanceMatrix(cluster);
-    
     double totalEnergy = 0.0;
-    
+
     for (int i = 0; i < n; ++i) {
         double repulsive = 0.0;
         double attractive = 0.0;
-        
+
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-            
-            double r = distanceMatrix[i * n + j];
+
+            double r = dist[i * n + j];
             GuptaParameters params = getParameters(cluster, i, j);
-            
+
             repulsive += params.A * std::exp(-params.p * (r / params.r0 - 1.0));
             attractive += params.xi * params.xi * std::exp(-2.0 * params.q * (r / params.r0 - 1.0));
         }
-        
+
         totalEnergy += repulsive - std::sqrt(attractive);
     }
-    
+
     return totalEnergy;
 }
 
-void GuptaPotential::calculateForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) {
+double GuptaPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
+    std::vector<double> dist;
+    computeDistanceMatrix(cluster, dist);
+    return calcEnergyWithDist(cluster, dist);
+}
+
+void GuptaPotential::calcForcesWithDist(const BinaryAlloyCluster& cluster, std::vector<double>& f, const std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    computeDistanceMatrix(cluster);
-    
-    if (f.size() != static_cast<size_t>(3 * n)) {
-        f.resize(3 * n);
-    }
-    std::fill(f.begin(), f.end(), 0.0);
-    
+    f.assign(3 * n, 0.0);
+
     std::vector<double> rho(n, 0.0);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-            
-            double r = distanceMatrix[i * n + j];
+
+            double r = dist[i * n + j];
             GuptaParameters params = getParameters(cluster, i, j);
             rho[i] += params.xi * params.xi * std::exp(-2.0 * params.q * (r / params.r0 - 1.0));
         }
     }
-    
+
     std::vector<double> coeff(n);
     for (int i = 0; i < n; ++i) {
         coeff[i] = (rho[i] > Constants::EPSILON) ? 1.0 / std::sqrt(rho[i]) : 0.0;
     }
-    
+
     const double* x = cluster.data();
     const double* y = x + n;
     const double* z = y + n;
-    
+
     double* fx = f.data();
     double* fy = fx + n;
     double* fz = fy + n;
-    
+
     for (int i = 0; i < n - 1; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            double r = distanceMatrix[i * n + j];
+            double r = dist[i * n + j];
             if (r < Constants::EPSILON) continue;
-            
+
             GuptaParameters params = getParameters(cluster, i, j);
-            
+
             double expRep = std::exp(-params.p * (r / params.r0 - 1.0));
             double expAtt = std::exp(-2.0 * params.q * (r / params.r0 - 1.0));
-            
+
             double dRep = -params.A * params.p * expRep / params.r0;
             double dAtt = -params.xi * params.xi * params.q * expAtt / params.r0;
-            
+
             double force = -dRep + (coeff[i] + coeff[j]) * dAtt / 2.0;
-            
+
             double dx = x[i] - x[j];
             double dy = y[i] - y[j];
             double dz = z[i] - z[j];
-            
+
             fx[i] += force * dx / r;
             fx[j] -= force * dx / r;
             fy[i] += force * dy / r;
@@ -209,6 +198,8 @@ void GuptaPotential::calculateForces(const BinaryAlloyCluster& cluster, std::vec
 }
 
 double GuptaPotential::calculateEnergyWithForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) {
-    calculateForces(cluster, f);
-    return calculateEnergy(cluster);
+    std::vector<double> dist;
+    computeDistanceMatrix(cluster, dist);
+    calcForcesWithDist(cluster, f, dist);
+    return calcEnergyWithDist(cluster, dist);
 }

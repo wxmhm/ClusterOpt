@@ -492,40 +492,6 @@ void SaNSDE::migrationBetweenPopulations() {
     }
 }
 
-int SaNSDE::getEvaluationCount() const {
-    int total = 0;
-    for (const auto& pop : populations) {
-
-    }
-    return total;
-}
-
-int SaNSDE::getLocalSearchCount() const {
-    int total = 0;
-    for (const auto& pop : populations) {
-
-    }
-    return total;
-}
-
-double SaNSDE::getDiversity() const {
-    if (populations.empty()) return 0.0;
-
-    double minEnergy = globalBest.getEnergy();
-    double maxEnergy = globalBest.getEnergy();
-
-    for (const auto& pop : populations) {
-        minEnergy = (std::min)(minEnergy, pop->getBestEnergy());
-        maxEnergy = (std::max)(maxEnergy, pop->getBestEnergy());
-    }
-
-    if (std::abs(maxEnergy - minEnergy) < Constants::EPSILON) {
-        return 1.0;
-    }
-
-    return (maxEnergy - minEnergy) / maxEnergy;
-}
-
 BinaryAlloyCluster SaNSDE::optimize(const BinaryAlloyCluster& initial, ResultManager* resultManager) {
     initialize(initial);
 

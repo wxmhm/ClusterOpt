@@ -10,18 +10,24 @@
 SuttonChenPotential::SuttonChenPotential() {
     elementA = "Pt";
     elementB = "Cu";
-    paramsAA = SuttonChenParameters(0.01, 34.408, 3.9163, 10.0, 8.0);
-    paramsBB = SuttonChenParameters(0.0057, 39.432, 3.61, 9.0, 6.0);
-    paramsAB = SuttonChenParameters(0.00755, 36.920, 3.76315, 9.5, 7.0);
+    // Pt-Pt: ε, C, a, n, m
+    paramsAA = SuttonChenParameters(0.0097894, 71.336, 3.9163, 11.0, 7.0);
+    // Cu-Cu
+    paramsBB = SuttonChenParameters(0.0057921, 84.843, 3.6030, 10.0, 5.0);
+    // Pt-Cu (几何/算术平均)
+    paramsAB = SuttonChenParameters(0.0075300, 78.0895, 3.75965, 10.5, 6.0);
     cutoff = 10.0;
 }
 
 SuttonChenPotential::SuttonChenPotential(const std::string& elemA, const std::string& elemB) {
     elementA = elemA;
     elementB = elemB;
-    paramsAA = SuttonChenParameters(0.01, 34.408, 3.9163, 10.0, 8.0);
-    paramsBB = SuttonChenParameters(0.0057, 39.432, 3.61, 9.0, 6.0);
-    paramsAB = SuttonChenParameters(0.00755, 36.920, 3.76315, 9.5, 7.0);
+    // Pt-Pt: ε, C, a, n, m
+    paramsAA = SuttonChenParameters(0.0097894, 71.336, 3.9163, 11.0, 7.0);
+    // Cu-Cu
+    paramsBB = SuttonChenParameters(0.0057921, 84.843, 3.6030, 10.0, 5.0);
+    // Pt-Cu (几何/算术平均)
+    paramsAB = SuttonChenParameters(0.0075300, 78.0895, 3.75965, 10.5, 6.0);
     cutoff = 10.0;
 }
 
@@ -100,56 +106,45 @@ double SuttonChenPotential::densityFunctionDerivative(double r, const SuttonChen
 }
 
 // 4. 距离矩阵计算 - 与Gupta完全一致
-void SuttonChenPotential::computeDistanceMatrix(const BinaryAlloyCluster& cluster) const {
+void SuttonChenPotential::computeDistanceMatrix(const BinaryAlloyCluster& cluster, std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    if (distanceMatrix.size() != static_cast<size_t>(n * n)) {
-        distanceMatrix.resize(n * n);
-    }
+    dist.resize(n * n);
 
     const double* x = cluster.data();
     const double* y = x + n;
     const double* z = y + n;
 
     for (int i = 0; i < n - 1; ++i) {
-        distanceMatrix[i * n + i] = 0.0;
+        dist[i * n + i] = 0.0;
         for (int j = i + 1; j < n; ++j) {
             double dx = x[i] - x[j];
             double dy = y[i] - y[j];
             double dz = z[i] - z[j];
             double r = std::sqrt(dx * dx + dy * dy + dz * dz);
-            distanceMatrix[i * n + j] = r;
-            distanceMatrix[j * n + i] = r;
+            dist[i * n + j] = r;
+            dist[j * n + i] = r;
         }
     }
-    distanceMatrix[n * n - 1] = 0.0;
+    dist[n * n - 1] = 0.0;
 }
 
 // 5. 能量计算 - 完全模仿Gupta的双重遍历结构
-double SuttonChenPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
+double SuttonChenPotential::calcEnergyWithDist(const BinaryAlloyCluster& cluster, const std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    computeDistanceMatrix(cluster);
-
     double totalEnergy = 0.0;
 
-    // 【关键】：完全模仿Gupta的结构
     for (int i = 0; i < n; ++i) {
-        double repulsive = 0.0;      // 对势项（对应Gupta的repulsive）
-        double densitySum = 0.0;     // 密度项（对应Gupta的attractive）
+        double repulsive = 0.0;
+        double densitySum = 0.0;
 
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-
-            double r = distanceMatrix[i * n + j];
+            double r = dist[i * n + j];
             SuttonChenParameters params = getParameters(cluster, i, j);
-
-            // 累加对势和密度
             repulsive += params.epsilon * pairPotential(r, params);
             densitySum += densityFunction(r, params);
         }
 
-        // 每个原子的能量贡献
-        // E_i = (1/2) * Σⱼ V(rᵢⱼ) - c*ε*√ρᵢ
-        // 注意：对势要除以2，因为双重遍历会重复计数
         SuttonChenParameters paramsI = getParameters(cluster, i, i);
         totalEnergy += 0.5 * repulsive;
         if (densitySum > 1e-15) {
@@ -160,42 +155,37 @@ double SuttonChenPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
     return totalEnergy;
 }
 
+double SuttonChenPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
+    std::vector<double> dist;
+    computeDistanceMatrix(cluster, dist);
+    return calcEnergyWithDist(cluster, dist);
+}
+
 // 6. 力计算 - 完全模仿Gupta的结构
-void SuttonChenPotential::calculateForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) {
+void SuttonChenPotential::calcForcesWithDist(const BinaryAlloyCluster& cluster, std::vector<double>& f, const std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    computeDistanceMatrix(cluster);
+    f.assign(3 * n, 0.0);
 
-    if (f.size() != static_cast<size_t>(3 * n)) {
-        f.resize(3 * n);
-    }
-    std::fill(f.begin(), f.end(), 0.0);
-
-    // 【步骤1】：计算密度 - 与Gupta一致
     std::vector<double> rho(n, 0.0);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-
-            double r = distanceMatrix[i * n + j];
+            double r = dist[i * n + j];
             SuttonChenParameters params = getParameters(cluster, i, j);
             rho[i] += densityFunction(r, params);
         }
     }
 
-    // 【步骤2】：计算系数 = 嵌入能对密度的导数 - 与Gupta一致
     std::vector<double> coeff(n);
     for (int i = 0; i < n; ++i) {
         if (rho[i] > 1e-15) {
             SuttonChenParameters paramsI = getParameters(cluster, i, i);
-            // coeff[i] = -∂E/∂ρᵢ = ε*c/(2√ρᵢ)
             coeff[i] = paramsI.epsilon * paramsI.c / (2.0 * std::sqrt(rho[i]));
-        }
-        else {
+        } else {
             coeff[i] = 0.0;
         }
     }
 
-    // 【步骤3】：只遍历i<j计算力 - 与Gupta一致
     const double* x = cluster.data();
     const double* y = x + n;
     const double* z = y + n;
@@ -206,22 +196,15 @@ void SuttonChenPotential::calculateForces(const BinaryAlloyCluster& cluster, std
 
     for (int i = 0; i < n - 1; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            double r = distanceMatrix[i * n + j];
+            double r = dist[i * n + j];
             if (r < 1e-15) continue;
 
             SuttonChenParameters params = getParameters(cluster, i, j);
 
-            // 对势项的导数
             double dPair = params.epsilon * pairPotentialDerivative(r, params);
-
-            // 密度项的导数
             double dDens = densityFunctionDerivative(r, params);
-
-            // 总力 = -对势导数 + 密度导数的贡献
-            // 注意：与Gupta不同，SC的密度函数导数不需要除以2
             double force = -dPair + (coeff[i] + coeff[j]) * dDens;
 
-            // 分解到xyz方向
             double dx = x[i] - x[j];
             double dy = y[i] - y[j];
             double dz = z[i] - z[j];
@@ -236,18 +219,9 @@ void SuttonChenPotential::calculateForces(const BinaryAlloyCluster& cluster, std
     }
 }
 
-// 辅助函数
 void SuttonChenPotential::setElements(const std::string& elemA, const std::string& elemB) {
     elementA = elemA;
     elementB = elemB;
-}
-
-void SuttonChenPotential::setParameters(const SuttonChenParameters& aa,
-    const SuttonChenParameters& bb,
-    const SuttonChenParameters& ab) {
-    paramsAA = aa;
-    paramsBB = bb;
-    paramsAB = ab;
 }
 
 SuttonChenParameters SuttonChenPotential::getParameters(const BinaryAlloyCluster& cluster,
@@ -268,6 +242,8 @@ SuttonChenParameters SuttonChenPotential::getParameters(const BinaryAlloyCluster
 
 double SuttonChenPotential::calculateEnergyWithForces(const BinaryAlloyCluster& cluster,
     std::vector<double>& f) {
-    calculateForces(cluster, f);
-    return calculateEnergy(cluster);
+    std::vector<double> dist;
+    computeDistanceMatrix(cluster, dist);
+    calcForcesWithDist(cluster, f, dist);
+    return calcEnergyWithDist(cluster, dist);
 }

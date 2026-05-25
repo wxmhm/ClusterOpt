@@ -25,12 +25,13 @@ private:
     SuttonChenParameters paramsBB;
     SuttonChenParameters paramsAB;
 
-    mutable std::vector<double> distanceMatrix;
     double cutoff;
 
-    void computeDistanceMatrix(const BinaryAlloyCluster& cluster) const;
+    void computeDistanceMatrix(const BinaryAlloyCluster& cluster, std::vector<double>& dist) const;
     SuttonChenParameters getParameters(const BinaryAlloyCluster& cluster,
         int i, int j) const;
+    double calcEnergyWithDist(const BinaryAlloyCluster& cluster, const std::vector<double>& dist) const;
+    void calcForcesWithDist(const BinaryAlloyCluster& cluster, std::vector<double>& f, const std::vector<double>& dist) const;
 
     // Pair potential V(r) = (a/r)^n
     double pairPotential(double r, const SuttonChenParameters& params) const;
@@ -52,15 +53,6 @@ public:
     bool loadParameters(const std::string& filename) override;
     void setElements(const std::string& elemA, const std::string& elemB) override;
     double calculateEnergy(const BinaryAlloyCluster& cluster) override;
-    void calculateForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) override;
     double calculateEnergyWithForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) override;
     std::string getPotentialType() const override { return "Sutton-Chen"; }
-
-    // SuttonChen-specific methods
-    void setParameters(const SuttonChenParameters& aa,
-                      const SuttonChenParameters& bb,
-                      const SuttonChenParameters& ab);
-    const SuttonChenParameters& getParamsAA() const { return paramsAA; }
-    const SuttonChenParameters& getParamsBB() const { return paramsBB; }
-    const SuttonChenParameters& getParamsAB() const { return paramsAB; }
 };

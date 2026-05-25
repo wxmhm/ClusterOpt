@@ -1,10 +1,8 @@
 #include "../include/Configuration.h"
-#include <fstream>cdeParams
+#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <regex>
-
 Configuration::SystemConfig Configuration::getDefaultConfig() {
     SystemConfig config;
 
@@ -40,21 +38,16 @@ Configuration::SystemConfig Configuration::getDefaultConfig() {
     config.sansdeParams.memorySize = 100;
     config.sansdeParams.useLocalSearch = true;
     config.sansdeParams.localSearchFrequency = 1;
+    config.sansdeParams.useThreading = false;
 
     // File and output parameters
     config.potentialFile = "data/gupta_PtCo.txt";
     config.outputDirectory = "results";
-    config.saveIntermediates = true;
-    config.saveFrequency = 10;
     config.numRuns = 1;
     config.runAllCompositions = false;
 
     // Advanced options
     config.verbose = true;
-    config.randomSeed = -1;
-    config.convergenceTolerance = 1e-6;
-    config.stallGenerations = 50;
-
 
     // Potential type
     config.potentialType = PotentialType::Gupta;
@@ -136,6 +129,7 @@ bool Configuration::loadFromFile(const std::string& filename, SystemConfig& conf
                 else if (key == "cde.useLocalSearch") config.cdeParams.useLocalSearch = (value == "true" || value == "1");
                 else if (key == "cde.localSearchFrequency") config.cdeParams.localSearchFrequency = std::stoi(value);
                 else if (key == "cde.useMultiPopulation") config.cdeParams.useMultiPopulation = (value == "true" || value == "1");
+                else if (key == "cde.useThreading") config.cdeParams.useThreading = (value == "true" || value == "1");
 
                 // SaNSDE parameters
                 else if (key == "sansde.populationSize") config.sansdeParams.populationSize = std::stoi(value);
@@ -151,20 +145,16 @@ bool Configuration::loadFromFile(const std::string& filename, SystemConfig& conf
                 else if (key == "sansde.memorySize") config.sansdeParams.memorySize = std::stoi(value);
                 else if (key == "sansde.useLocalSearch") config.sansdeParams.useLocalSearch = (value == "true" || value == "1");
                 else if (key == "sansde.localSearchFrequency") config.sansdeParams.localSearchFrequency = std::stoi(value);
+                else if (key == "sansde.useThreading") config.sansdeParams.useThreading = (value == "true" || value == "1");
 
                 // File and output parameters
                 else if (key == "potentialFile") config.potentialFile = value;
                 else if (key == "outputDirectory") config.outputDirectory = value;
-                else if (key == "saveIntermediates") config.saveIntermediates = (value == "true" || value == "1");
-                else if (key == "saveFrequency") config.saveFrequency = std::stoi(value);
                 else if (key == "numRuns") config.numRuns = std::stoi(value);
                 else if (key == "runAllCompositions") config.runAllCompositions = (value == "true" || value == "1");
 
                 // Advanced options
                 else if (key == "verbose") config.verbose = (value == "true" || value == "1");
-                else if (key == "randomSeed") config.randomSeed = std::stoi(value);
-                else if (key == "convergenceTolerance") config.convergenceTolerance = std::stod(value);
-                else if (key == "stallGenerations") config.stallGenerations = std::stoi(value);
             }
         }
     }
@@ -207,7 +197,8 @@ bool Configuration::saveToFile(const std::string& filename, const SystemConfig& 
     file << "cde.exchangeInterval=" << config.cdeParams.exchangeInterval << "\n";
     file << "cde.useLocalSearch=" << (config.cdeParams.useLocalSearch ? "true" : "false") << "\n";
     file << "cde.localSearchFrequency=" << config.cdeParams.localSearchFrequency << "\n";
-    file << "cde.useMultiPopulation=" << (config.cdeParams.useMultiPopulation ? "true" : "false") << "\n\n";
+    file << "cde.useMultiPopulation=" << (config.cdeParams.useMultiPopulation ? "true" : "false") << "\n";
+    file << "cde.useThreading=" << (config.cdeParams.useThreading ? "true" : "false") << "\n\n";
 
     file << "# SaNSDE Algorithm Parameters\n";
     file << "sansde.populationSize=" << config.sansdeParams.populationSize << "\n";
@@ -222,13 +213,12 @@ bool Configuration::saveToFile(const std::string& filename, const SystemConfig& 
     file << "sansde.neighborhoodSizeMax=" << config.sansdeParams.neighborhoodSizeMax << "\n";
     file << "sansde.memorySize=" << config.sansdeParams.memorySize << "\n";
     file << "sansde.useLocalSearch=" << (config.sansdeParams.useLocalSearch ? "true" : "false") << "\n";
-    file << "sansde.localSearchFrequency=" << config.sansdeParams.localSearchFrequency << "\n\n";
+    file << "sansde.localSearchFrequency=" << config.sansdeParams.localSearchFrequency << "\n";
+    file << "sansde.useThreading=" << (config.sansdeParams.useThreading ? "true" : "false") << "\n\n";
 
     file << "# File and Output Parameters\n";
     file << "potentialFile=" << config.potentialFile << "\n";
-    file << "outputDirectory=" << config.outputDirectory << "\n";
-    file << "saveIntermediates=" << (config.saveIntermediates ? "true" : "false") << "\n";
-    file << "saveFrequency=" << config.saveFrequency << "\n\n";
+    file << "outputDirectory=" << config.outputDirectory << "\n\n";
 
     file << "# Run Control\n";
     file << "numRuns=" << config.numRuns << "\n";
@@ -236,9 +226,6 @@ bool Configuration::saveToFile(const std::string& filename, const SystemConfig& 
 
     file << "# Advanced Options\n";
     file << "verbose=" << (config.verbose ? "true" : "false") << "\n";
-    file << "randomSeed=" << config.randomSeed << "\n";
-    file << "convergenceTolerance=" << config.convergenceTolerance << "\n";
-    file << "stallGenerations=" << config.stallGenerations << "\n";
 
     file.close();
     return true;
@@ -285,107 +272,5 @@ std::vector<std::pair<int, int>> Configuration::generateAllCompositions(int tota
     }
 
     return compositions;
-}
-
-
-bool Configuration::loadStructureFromFile(
-    const std::string& filename,
-    BinaryAlloyCluster& cluster,
-    const std::string& elementA,
-    const std::string& elementB
-) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filename << std::endl;
-        return false;
-    }
-
-    std::vector<std::array<double, 3>> positions;
-    std::string line;
-
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') continue;
-
-        std::istringstream iss(line);
-        std::string symbol;
-        double x, y, z;
-
-        if (iss >> symbol >> x >> y >> z) {
-            positions.push_back({ x, y, z });
-        }
-    }
-
-    if (positions.size() != static_cast<size_t>(cluster.getNumAtoms())) {
-        std::cerr << "Warning: Number of atoms in file (" << positions.size()
-            << ") doesn't match cluster size (" << cluster.getNumAtoms() << ")" << std::endl;
-        return false;
-    }
-
-    for (size_t i = 0; i < positions.size(); ++i) {
-        cluster.setAtomPosition(i, positions[i][0], positions[i][1], positions[i][2]);
-    }
-
-    std::cout << "Loaded structure from " << filename
-        << " with " << positions.size() << " atoms" << std::endl;
-
-    return true;
-}
-
-std::vector<BinaryAlloyCluster> Configuration::loadInitialStructures(
-    const std::string& directory,
-    const std::string& elementA,
-    const std::string& elementB
-) {
-    std::vector<BinaryAlloyCluster> structures;
-
-    if (directory.empty() || !fs::exists(directory)) {
-        std::cout << "Initial structures directory not specified or doesn't exist" << std::endl;
-        return structures;
-    }
-
-    std::cout << "Loading initial structures from: " << directory << std::endl;
-
-    std::regex pattern("tmp[0-9]+\\.txt");
-
-    std::vector<fs::path> matchedFiles;
-    for (const auto& entry : fs::directory_iterator(directory)) {
-        if (entry.is_regular_file()) {
-            std::string filename = entry.path().filename().string();
-            if (std::regex_match(filename, pattern)) {
-                matchedFiles.push_back(entry.path());
-            }
-        }
-    }
-
-    std::sort(matchedFiles.begin(), matchedFiles.end());
-
-    std::cout << "Found " << matchedFiles.size() << " tmp*.txt files" << std::endl;
-
-    for (const auto& filepath : matchedFiles) {
-        std::ifstream checkFile(filepath);
-        int atomCount = 0;
-        std::string line;
-        while (std::getline(checkFile, line)) {
-            if (!line.empty() && line[0] != '#') {
-                atomCount++;
-            }
-        }
-        checkFile.close();
-
-        if (atomCount == 0) continue;
-
-        int countA = atomCount / 2;
-        int countB = atomCount - countA;
-
-        BinaryAlloyCluster cluster(countA, countB, elementA, elementB);
-
-        if (loadStructureFromFile(filepath.string(), cluster, elementA, elementB)) {
-            structures.push_back(cluster);
-        }
-    }
-
-    std::cout << "Successfully loaded " << structures.size() << " initial structures" << std::endl;
-
-    return structures;
 }
 

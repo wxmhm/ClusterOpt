@@ -9,7 +9,7 @@
 FinnisSinclairPotential::FinnisSinclairPotential() {
     elementA = "A";
     elementB = "B";
-    // Ä¬ÈÏ³õÊ¼»¯·ÀÖ¹Î´¼ÓÔØ²ÎÊýÊ±±ÀÀ£
+    // Ä¬ï¿½Ï³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½Ö¹Î´ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
     paramsAA = FinnisSinclairParameters(5.0, 1.0, -0.5, 0.1, 4.5, 1.0, 0.0);
     paramsBB = FinnisSinclairParameters(5.0, 1.0, -0.5, 0.1, 4.5, 1.0, 0.0);
     paramsAB = FinnisSinclairParameters(5.0, 1.0, -0.5, 0.1, 4.5, 1.0, 0.0);
@@ -31,7 +31,7 @@ bool FinnisSinclairPotential::loadParameters(const std::string& filename) {
     std::string line;
     std::vector<std::vector<double>> params;
 
-    // ³¢ÊÔ¶ÁÈ¡Ê×ÐÐÔªËØÃû£¬Ôö¼ÓÂ³°ôÐÔ
+    // ï¿½ï¿½ï¿½Ô¶ï¿½È¡ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â³ï¿½ï¿½ï¿½ï¿½
     if (std::getline(file, line)) {
         if (line.find(',') == std::string::npos && line.find('#') != 0) {
             std::istringstream iss(line);
@@ -46,7 +46,7 @@ bool FinnisSinclairPotential::loadParameters(const std::string& filename) {
     while (std::getline(file, line)) {
         if (line.empty() || line[0] == '#') continue;
 
-        // ¼æÈÝ´ø±êÇ©µÄÐÐ£¬Èç "Pt Cu"
+        // ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½Ç©ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ "Pt Cu"
         std::string content = line;
         size_t bracketPos = line.find(']');
         if (bracketPos != std::string::npos) {
@@ -58,7 +58,7 @@ bool FinnisSinclairPotential::loadParameters(const std::string& filename) {
         std::string value;
 
         while (std::getline(iss, value, ',')) {
-            // ÇåÀí¿Õ°××Ö·û
+            // ï¿½ï¿½ï¿½ï¿½ï¿½Õ°ï¿½ï¿½Ö·ï¿½
             value.erase(0, value.find_first_not_of(" \t\r\n"));
             value.erase(value.find_last_not_of(" \t\r\n") + 1);
             if (value.empty()) continue;
@@ -71,7 +71,7 @@ bool FinnisSinclairPotential::loadParameters(const std::string& filename) {
             }
         }
 
-        // FS²ÎÊýÍ¨³£ÓÐ7¸ö: cutoff, c0, c1, c2, d, c, beta
+        // FSï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½7ï¿½ï¿½: cutoff, c0, c1, c2, d, c, beta
         if (row.size() >= 7) {
             params.push_back(row);
         }
@@ -91,46 +91,36 @@ bool FinnisSinclairPotential::loadParameters(const std::string& filename) {
     return false;
 }
 
-void FinnisSinclairPotential::setParameters(const FinnisSinclairParameters& aa,
-    const FinnisSinclairParameters& bb,
-    const FinnisSinclairParameters& ab) {
-    paramsAA = aa;
-    paramsBB = bb;
-    paramsAB = ab;
-}
-
 void FinnisSinclairPotential::setElements(const std::string& elemA,
     const std::string& elemB) {
     elementA = elemA;
     elementB = elemB;
 }
 
-void FinnisSinclairPotential::computeDistanceMatrix(const BinaryAlloyCluster& cluster) const {
+void FinnisSinclairPotential::computeDistanceMatrix(const BinaryAlloyCluster& cluster, std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    if (distanceMatrix.size() != static_cast<size_t>(n * n)) {
-        distanceMatrix.resize(n * n);
-    }
+    dist.resize(n * n);
 
     const double* x = cluster.data();
     const double* y = x + n;
     const double* z = y + n;
 
     for (int i = 0; i < n - 1; ++i) {
-        distanceMatrix[i * n + i] = 0.0;
+        dist[i * n + i] = 0.0;
         for (int j = i + 1; j < n; ++j) {
             double dx = x[i] - x[j];
             double dy = y[i] - y[j];
             double dz = z[i] - z[j];
             double r = std::sqrt(dx * dx + dy * dy + dz * dz);
-            distanceMatrix[i * n + j] = r;
-            distanceMatrix[j * n + i] = r;
+            dist[i * n + j] = r;
+            dist[j * n + i] = r;
         }
     }
-    distanceMatrix[n * n - 1] = 0.0;
+    dist[n * n - 1] = 0.0;
 }
 
-// »ñÈ¡²ÎÊýµÄ¸¨Öúº¯Êý
-// ¶ÔÓÚ¶ÔÊÆ(Pair Potential)£¬Èç¹ûÊÇ AB ¶Ô£¬ÐèÒª·µ»Ø»ìºÏ²ÎÊý paramsAB
+// ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½(Pair Potential)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ AB ï¿½Ô£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ø»ï¿½Ï²ï¿½ï¿½ï¿½ paramsAB
 FinnisSinclairParameters FinnisSinclairPotential::getParameters(
     const BinaryAlloyCluster& cluster, int i, int j) const {
     int typeI = cluster.getAtomType(i);
@@ -184,87 +174,64 @@ double FinnisSinclairPotential::densityFunctionDerivative(double r,
     return 2.0 * dr + 3.0 * params.beta * dr * dr / params.d;
 }
 
-double FinnisSinclairPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
+double FinnisSinclairPotential::calcEnergyWithDist(const BinaryAlloyCluster& cluster, const std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    computeDistanceMatrix(cluster);
-
     double totalEnergy = 0.0;
 
-    // 1. ¼ÆËãÃ¿¸öÔ­×Ó´¦µÄµç×ÓÃÜ¶È rho_i
     std::vector<double> rho(n, 0.0);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-            double r = distanceMatrix[i * n + j];
-
-            // ¡¾¹Ø¼üÐÞÕý¡¿£ºÃÜ¶È¹±Ï×È¡¾öÓÚÁÚ¾ÓÔ­×Ó j µÄÀàÐÍ
-            // ÀíÂÛÒÀ¾Ý£ºrho_i = sum( phi_j(r_ij) )
-            // ¼´Ê¹ i ºÍ j ²»Í¬£¬ÃÜ¶Èº¯ÊýÒ²Ö»Ê¹ÓÃ j µÄ²ÎÊý
+            double r = dist[i * n + j];
             int typeJ = cluster.getAtomType(j);
             const FinnisSinclairParameters& paramsJ = (typeJ == 0) ? paramsAA : paramsBB;
-
             rho[i] += densityFunction(r, paramsJ);
         }
     }
 
-    // 2. ¼ÆËã×ÜÄÜÁ¿
     for (int i = 0; i < n; ++i) {
         double pairEnergy = 0.0;
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-            double r = distanceMatrix[i * n + j];
-
-            // ¶ÔÊÆ V_ij ÒÀÈ»Ê¹ÓÃ AB »ìºÏ²ÎÊý
-            FinnisSinclairParameters paramsPair = getParameters(cluster, i, j);
+            double r = dist[i * n + j];
+            const FinnisSinclairParameters& paramsPair = getParameters(cluster, i, j);
             pairEnergy += pairPotential(r, paramsPair);
         }
 
-        // Ç¶ÈëÄÜ E_emb = -A * sqrt(rho)
-        // Ê¹ÓÃÔ­×Ó i ×ÔÉíµÄ²ÎÊý A (¼´´úÂëÖÐµÄ c)
-        FinnisSinclairParameters paramsI = getParameters(cluster, i, i);
+        const FinnisSinclairParameters& paramsI = getParameters(cluster, i, i);
         double embeddingEnergy = 0.0;
         if (rho[i] > Constants::EPSILON) {
             embeddingEnergy = -paramsI.c * std::sqrt(rho[i]);
         }
 
-        // E_total = 1/2 * Sum(V_ij) + Sum(E_emb_i)
         totalEnergy += 0.5 * pairEnergy + embeddingEnergy;
     }
 
     return totalEnergy;
 }
 
-void FinnisSinclairPotential::calculateForces(const BinaryAlloyCluster& cluster,
-    std::vector<double>& f) {
+void FinnisSinclairPotential::calcForcesWithDist(const BinaryAlloyCluster& cluster,
+    std::vector<double>& f, const std::vector<double>& dist) const {
     int n = cluster.getNumAtoms();
-    computeDistanceMatrix(cluster);
+    f.assign(3 * n, 0.0);
 
-    if (f.size() != static_cast<size_t>(3 * n)) {
-        f.resize(3 * n);
-    }
-    std::fill(f.begin(), f.end(), 0.0);
-
-    // 1. ¼ÆËãÃÜ¶È (Óë calculateEnergy Âß¼­±ØÐëÍêÈ«Ò»ÖÂ)
     std::vector<double> rho(n, 0.0);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i == j) continue;
-            double r = distanceMatrix[i * n + j];
+            double r = dist[i * n + j];
             int typeJ = cluster.getAtomType(j);
             const FinnisSinclairParameters& paramsJ = (typeJ == 0) ? paramsAA : paramsBB;
             rho[i] += densityFunction(r, paramsJ);
         }
     }
 
-    // 2. Ô¤¼ÆËãÇ¶ÈëÄÜ¶ÔÃÜ¶ÈµÄµ¼Êý dE/drho
-    // E = -c * sqrt(rho) => dE/drho = -c / (2 * sqrt(rho))
     std::vector<double> dEdRho(n);
     for (int i = 0; i < n; ++i) {
-        FinnisSinclairParameters paramsI = getParameters(cluster, i, i);
+        const FinnisSinclairParameters& paramsI = getParameters(cluster, i, i);
         if (rho[i] > Constants::EPSILON) {
             dEdRho[i] = -paramsI.c / (2.0 * std::sqrt(rho[i]));
-        }
-        else {
+        } else {
             dEdRho[i] = 0.0;
         }
     }
@@ -277,40 +244,24 @@ void FinnisSinclairPotential::calculateForces(const BinaryAlloyCluster& cluster,
     double* fy = fx + n;
     double* fz = fy + n;
 
-    // 3. ¼ÆËãÁ¦ (±éÀúÃ¿Ò»¶Ô i, j)
     for (int i = 0; i < n - 1; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            double r = distanceMatrix[i * n + j];
+            double r = dist[i * n + j];
             if (r < Constants::EPSILON) continue;
 
-            // --- A. ¶ÔÊÆ²¿·ÖµÄÁ¦ ---
-            // F_pair = -dV/dr
-            FinnisSinclairParameters paramsPair = getParameters(cluster, i, j);
+            const FinnisSinclairParameters& paramsPair = getParameters(cluster, i, j);
             double dV = pairPotentialDerivative(r, paramsPair);
 
-            // --- B. Ç¶ÈëÄÜ²¿·ÖµÄÁ¦ (¶àÌåÐ§Ó¦) ---
-            // Á´Ê½·¨Ôò£ºF_emb = (dE/drho_i * drho_i/dr) + (dE/drho_j * drho_j/dr)
-
-            // 1. Ô­×Ó j ¶ÔÔ­×Ó i µÄÃÜ¶È¹±Ï× rho_i µÄµ¼Êý -> phi'_j(r)
-            // ÐèÒªÊ¹ÓÃ j µÄ²ÎÊý
             int typeJ = cluster.getAtomType(j);
             const FinnisSinclairParameters& paramsJ = (typeJ == 0) ? paramsAA : paramsBB;
             double dPhi_j = densityFunctionDerivative(r, paramsJ);
 
-            // 2. Ô­×Ó i ¶ÔÔ­×Ó j µÄÃÜ¶È¹±Ï× rho_j µÄµ¼Êý -> phi'_i(r)
-            // ÐèÒªÊ¹ÓÃ i µÄ²ÎÊý
             int typeI = cluster.getAtomType(i);
             const FinnisSinclairParameters& paramsI = (typeI == 0) ? paramsAA : paramsBB;
             double dPhi_i = densityFunctionDerivative(r, paramsI);
 
-            // ×éºÏÇ¶ÈëÁ¦Ïî
-            // ×¢Òâ£ºdEdRho Í¨³£ÊÇ¸ºµÄ£¬dPhi Ò²ÊÇ¸ºµÄ(ÃÜ¶ÈËæ¾àÀëË¥¼õ)
-            // ËùÒÔ dEdRho * dPhi ÊÇÕýÖµ
             double embeddingForceTerm = dEdRho[i] * dPhi_j + dEdRho[j] * dPhi_i;
 
-            // ×Ü¾¶ÏòÁ¦µ¼Êý F_radial = -dE_total/dr
-            // = -(dV + embeddingForceTerm)
-            // = -dV - embeddingForceTerm
             double forceRadial = -dV - embeddingForceTerm;
 
             double dx = x[i] - x[j];
@@ -318,7 +269,6 @@ void FinnisSinclairPotential::calculateForces(const BinaryAlloyCluster& cluster,
             double dz = z[i] - z[j];
             double invR = 1.0 / r;
 
-            // ½«¾¶ÏòÁ¦·Ö½âµ½ XYZ ·ÖÁ¿
             double forceScale = forceRadial * invR;
 
             fx[i] += forceScale * dx;
@@ -331,8 +281,16 @@ void FinnisSinclairPotential::calculateForces(const BinaryAlloyCluster& cluster,
     }
 }
 
+double FinnisSinclairPotential::calculateEnergy(const BinaryAlloyCluster& cluster) {
+    std::vector<double> dist;
+    computeDistanceMatrix(cluster, dist);
+    return calcEnergyWithDist(cluster, dist);
+}
+
 double FinnisSinclairPotential::calculateEnergyWithForces(const BinaryAlloyCluster& cluster,
     std::vector<double>& f) {
-    calculateForces(cluster, f);
-    return calculateEnergy(cluster);
+    std::vector<double> dist;
+    computeDistanceMatrix(cluster, dist);
+    calcForcesWithDist(cluster, f, dist);
+    return calcEnergyWithDist(cluster, dist);
 }

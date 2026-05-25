@@ -107,23 +107,6 @@ double NELbfgs::optimize(BinaryAlloyCluster& cluster) {
     
 
     lbfgs_free(x);
-    
+
     return fx;
-}
-
-double NELbfgs::local(double *coords, double *force, int N) {
-
-    BinaryAlloyCluster tempCluster(N, "A", "B");
-    std::vector<double> coordVec(coords, coords + 3*N);
-    tempCluster.getCoordinates() = coordVec;
-    
-    double energy = optimize(tempCluster);
-    
-
-    const auto& newCoords = tempCluster.getCoordinates();
-    for (int i = 0; i < 3*N; i++) {
-        coords[i] = newCoords[i];
-    }
-    
-    return energy;
 }

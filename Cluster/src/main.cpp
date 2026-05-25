@@ -41,7 +41,7 @@ BinaryAlloyCluster runSingleOptimization(
         best = optimizer.optimize(initial, resultManager);
     }
     else if (config.algorithm == AlgorithmType::SaNSDE) {
-        SaNSDE optimizer(config.sansdeParams, potential, localOptimizer);
+        SaNSDE optimizer(config.sansdeParams, potential, localOptimizer, config.sansdeParams.useThreading);
         best = optimizer.optimize(initial, resultManager);
     }
     else if (config.algorithm == AlgorithmType::PSO) {
@@ -104,7 +104,8 @@ CompositionResult runOptimizationForComposition(
 
     std::string compositionName = config.elementA + std::to_string(nA) +
         config.elementB + std::to_string(nB);
-    std::string outputDir = config.outputDirectory + "/" + compositionName;
+    std::string potName = Configuration::potentialTypeToString(config.potentialType);
+    std::string outputDir = config.outputDirectory + "/" + potName + "/" + compositionName;
 
     ResultManager resultManager(outputDir);
     resultManager.loadHistoricalBest(compositionName);
@@ -212,7 +213,6 @@ CompositionResult runOptimizationForComposition(
 }
 
 int main(int argc, char* argv[]) {
-    ElementInfo::initialize();
 
     Configuration::SystemConfig config = Configuration::getDefaultConfig();
     std::string configFile = "data/config.txt";
@@ -305,7 +305,8 @@ int main(int argc, char* argv[]) {
 
         auto compositions = Configuration::generateAllCompositions(config.totalAtoms);
 
-        std::string summaryFile = config.outputDirectory + "/all_compositions_summary.txt";
+        std::string potName = Configuration::potentialTypeToString(config.potentialType);
+        std::string summaryFile = config.outputDirectory + "/" + potName + "/all_compositions_summary.txt";
         std::ofstream summary(summaryFile);
         summary << "# Composition\tBest_Energy\tAvg_Energy\tStd_Dev\tRuns\n";
         summary << std::fixed << std::setprecision(6);

@@ -14,7 +14,6 @@ private:
         PotentialBase* potential;
         BinaryAlloyCluster* cluster;
         int numAtoms;
-        mutable std::vector<double> distanceMatrix;
     };
     
     // Static callback functions
@@ -45,7 +44,4 @@ public:
     
     // Local optimization
     double optimize(BinaryAlloyCluster& cluster);
-    
-    // Compatible interface
-    double local(double *coords, double *force, int N);
 };

@@ -106,36 +106,6 @@ void CDE_Population::mutation() {
             break;
         }
 
-        case CDE_RAND2: {
-            auto indices = RandomGenerator::permutation(populationSize, 5);
-            auto& coords = mutantPopulation[i].cluster.getCoordinates();
-            const auto& coords0 = population[indices[0]].cluster.getCoordinates();
-            const auto& coords1 = population[indices[1]].cluster.getCoordinates();
-            const auto& coords2 = population[indices[2]].cluster.getCoordinates();
-            const auto& coords3 = population[indices[3]].cluster.getCoordinates();
-            const auto& coords4 = population[indices[4]].cluster.getCoordinates();
-
-            for (size_t j = 0; j < coords.size(); ++j) {
-                coords[j] = coords4[j] + F * (coords0[j] + coords1[j] - coords2[j] - coords3[j]);
-            }
-            break;
-        }
-
-        case CDE_BEST2: {
-            auto indices = RandomGenerator::permutation(populationSize, 4);
-            auto& coords = mutantPopulation[i].cluster.getCoordinates();
-            const auto& bestCoords = bestIndividual.cluster.getCoordinates();
-            const auto& coords0 = population[indices[0]].cluster.getCoordinates();
-            const auto& coords1 = population[indices[1]].cluster.getCoordinates();
-            const auto& coords2 = population[indices[2]].cluster.getCoordinates();
-            const auto& coords3 = population[indices[3]].cluster.getCoordinates();
-
-            for (size_t j = 0; j < coords.size(); ++j) {
-                coords[j] = bestCoords[j] + F * (coords0[j] + coords1[j] - coords2[j] - coords3[j]);
-            }
-            break;
-        }
-
         case CDE_RAND_TO_BEST1: {
             auto indices = RandomGenerator::permutation(populationSize, 2);
             auto& coords = mutantPopulation[i].cluster.getCoordinates();

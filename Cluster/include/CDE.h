@@ -9,9 +9,7 @@
 
 enum CDE_MutationStrategy {
     CDE_RAND1,
-    CDE_RAND2,
     CDE_BEST1,
-    CDE_BEST2,
     CDE_RAND_TO_BEST1
 };
 

@@ -27,13 +27,8 @@ public:
     virtual bool loadParameters(const std::string& filename) = 0;
     virtual void setElements(const std::string& elemA, const std::string& elemB) = 0;
     virtual double calculateEnergy(const BinaryAlloyCluster& cluster) = 0;
-    virtual void calculateForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) = 0;
     virtual double calculateEnergyWithForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) = 0;
 
-    // Getter methods
-    virtual std::string getElementA() const { return elementA; }
-    virtual std::string getElementB() const { return elementB; }
-    
     // Virtual method to get potential type name
     virtual std::string getPotentialType() const = 0;
 };

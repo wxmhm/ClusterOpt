@@ -34,5 +34,4 @@ public:
 
     double getHistoricalBestEnergy() const { return historicalBestEnergy; }
     bool hasHistory() const { return hasHistoricalBest; }
-    const BinaryAlloyCluster& getHistoricalBestCluster() const { return historicalBestCluster; }
 };

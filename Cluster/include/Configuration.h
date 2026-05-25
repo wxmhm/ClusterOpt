@@ -24,7 +24,6 @@ public:
         int numElementB = 0;
         std::string elementA = "Pt";
         std::string elementB = "Co";
-        std::string initialStructuresDir = "";
 
         // Algorithm selection
         AlgorithmType algorithm = AlgorithmType::CDE;
@@ -41,8 +40,6 @@ public:
         // File and output parameters
         std::string potentialFile = "data/gupta_PtCo.txt";
         std::string outputDirectory = "results";
-        bool saveIntermediates = true;
-        int saveFrequency = 10;
 
         // Run control
         int numRuns = 1;
@@ -50,9 +47,6 @@ public:
 
         // Advanced options
         bool verbose = true;
-        int randomSeed = -1;  // -1 means use time-based seed
-        double convergenceTolerance = 1e-6;
-        int stallGenerations = 50;  // Stop if no improvement for this many generations
     };
 
     static bool loadFromFile(const std::string& filename, SystemConfig& config);
@@ -60,19 +54,6 @@ public:
     static SystemConfig getDefaultConfig();
     static void printConfig(const SystemConfig& config);
     static std::vector<std::pair<int, int>> generateAllCompositions(int totalAtoms);
-
-    static std::vector<BinaryAlloyCluster> loadInitialStructures(
-        const std::string& directory,
-        const std::string& elementA,
-        const std::string& elementB
-    );
-
-    static bool loadStructureFromFile(
-        const std::string& filename,
-        BinaryAlloyCluster& cluster,
-        const std::string& elementA,
-        const std::string& elementB
-    );
 
     // Helper function to convert string to PotentialType
     static PotentialType stringToPotentialType(const std::string& str);

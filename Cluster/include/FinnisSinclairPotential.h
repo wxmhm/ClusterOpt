@@ -24,12 +24,11 @@ private:
     FinnisSinclairParameters paramsBB;
     FinnisSinclairParameters paramsAB;
     
-    mutable std::vector<double> distanceMatrix;
-    
-    void computeDistanceMatrix(const BinaryAlloyCluster& cluster) const;
-    FinnisSinclairParameters getParameters(const BinaryAlloyCluster& cluster, 
+    void computeDistanceMatrix(const BinaryAlloyCluster& cluster, std::vector<double>& dist) const;
+    FinnisSinclairParameters getParameters(const BinaryAlloyCluster& cluster,
                                            int i, int j) const;
-    
+    double calcEnergyWithDist(const BinaryAlloyCluster& cluster, const std::vector<double>& dist) const;
+    void calcForcesWithDist(const BinaryAlloyCluster& cluster, std::vector<double>& f, const std::vector<double>& dist) const;
 
     double pairPotential(double r, const FinnisSinclairParameters& params) const;
     
@@ -50,15 +49,6 @@ public:
     bool loadParameters(const std::string& filename) override;
     void setElements(const std::string& elemA, const std::string& elemB) override;
     double calculateEnergy(const BinaryAlloyCluster& cluster) override;
-    void calculateForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) override;
     double calculateEnergyWithForces(const BinaryAlloyCluster& cluster, std::vector<double>& f) override;
     std::string getPotentialType() const override { return "Finnis-Sinclair"; }
-    
-    // FinnisSinclair-specific methods
-    void setParameters(const FinnisSinclairParameters& aa, 
-                      const FinnisSinclairParameters& bb, 
-                      const FinnisSinclairParameters& ab);
-    const FinnisSinclairParameters& getParamsAA() const { return paramsAA; }
-    const FinnisSinclairParameters& getParamsBB() const { return paramsBB; }
-    const FinnisSinclairParameters& getParamsAB() const { return paramsAB; }
 };

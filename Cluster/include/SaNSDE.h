@@ -12,7 +12,6 @@
 enum class MutationStrategy {
     RAND1,
     RAND2,
-    BEST1,
     RAND_TO_BEST1,
     CURRENT_TO_BEST1
 };
@@ -32,6 +31,7 @@ public:
         int memorySize = 100;
         bool useLocalSearch = true;
         int localSearchFrequency = 1;
+        bool useThreading = false;
     };
 
 private:
@@ -80,6 +80,8 @@ public:
 
     const BinaryAlloyCluster& getBestCluster() const { return bestCluster; }
     double getBestEnergy() const { return bestCluster.getEnergy(); }
+    int getEvaluationCount() const { return evaluationCount; }
+    int getLocalSearchCount() const { return localSearchCount; }
     void receiveIndividual(const BinaryAlloyCluster& cluster);
 
 private:
@@ -126,9 +128,6 @@ public:
 
     const BinaryAlloyCluster& getBestCluster() const { return globalBest; }
     int getGeneration() const { return generation; }
-    int getEvaluationCount() const;
-    int getLocalSearchCount() const;
-    double getDiversity() const;
 
 private:
     void updateGlobalBest(const BinaryAlloyCluster& candidate);
