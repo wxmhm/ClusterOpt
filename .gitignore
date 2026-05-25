@@ -362,9 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Project output - generated results
-Cluster/results/
-
-# Backup archives
-ClusterOpt_*.zip
+# Backup archives & compressed files
 *.zip
