@@ -88,23 +88,6 @@ sansde.useThreading=true   # for SaNSDE
 - A `std::mutex` protects the global-best individual when populations exchange or update it.
 - `RandomGenerator` uses `thread_local` Mersenne Twister engines — no lock contention on RNG.
 
-### Benchmark configs
-
-Two pre-made configs for A/B testing:
-
-| file | threading | purpose |
-|---|---|---|
-| `data/bench_thread.txt` | on | measure threaded throughput |
-| `data/bench_no_thread.txt` | off | baseline comparison |
-
-Run both and compare wall-clock time:
-
-```bash
-cd Cluster
-time echo "" | ../Release/Cluster.exe -config data/bench_thread.txt
-time echo "" | ../Release/Cluster.exe -config data/bench_no_thread.txt
-```
-
 ### When to use threading
 
 - **ON** — multi-core CPU, large population (≥30), FinnisSinclair/SuttonChen potentials (more expensive per evaluation).

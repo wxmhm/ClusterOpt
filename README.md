@@ -50,8 +50,6 @@ Enable in config:
 cde.useThreading=true      # or sansde.useThreading=true
 ```
 
-Benchmark configs at `data/bench_thread.txt` and `data/bench_no_thread.txt` for A/B comparison.
-
 ## Potentials
 
 | Type | Config Key | Parameters | Best For |
