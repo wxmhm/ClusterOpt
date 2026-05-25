@@ -140,10 +140,6 @@ Uses `git ls-files` for dynamic file discovery — new source files are automati
 ### v3.0 (Current)
 - Multithreading support (parallel populations with thread-local RNG)
 - Results auto-nested by potential type to prevent overwriting
-- Dead code cleanup (~670 lines removed)
-- Simplified configuration (47-line config.txt)
-- SSH key support for GitHub
-- Backup script with dynamic file discovery
 
 ### v2.0
 - Added Finnis-Sinclair and Sutton-Chen potentials
