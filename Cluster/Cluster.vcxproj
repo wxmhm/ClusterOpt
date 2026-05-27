@@ -72,6 +72,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\BasinHopping.h" />
     <ClInclude Include="include\BinaryAlloyCluster.h" />
     <ClInclude Include="include\Common.h" />
     <ClInclude Include="include\Configuration.h" />
@@ -80,12 +81,14 @@
     <ClInclude Include="include\CDE.h" />
     <ClInclude Include="include\LocalOptimizer.h" />
     <ClInclude Include="include\NELbfgs.h" />
+    <ClInclude Include="include\OrderParameterGuided.h" />
     <ClInclude Include="include\pso.h" />
     <ClInclude Include="include\ResultManager.h" />
     <ClInclude Include="include\SaNSDE.h" />
     <ClInclude Include="include\SuttonChenPotential.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\BasinHopping.cpp" />
     <ClCompile Include="src\BinaryAlloyCluster.cpp" />
     <ClCompile Include="src\Configuration.cpp" />
     <ClCompile Include="src\FinnisSinclairPotential.cpp" />
@@ -93,6 +96,7 @@
     <ClCompile Include="src\CDE.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\NELbfgs.cpp" />
+    <ClCompile Include="src\OrderParameterGuided.cpp" />
     <ClCompile Include="src\pso.cpp" />
     <ClCompile Include="src\ResultManager.cpp" />
     <ClCompile Include="src\SaNSDE.cpp" />

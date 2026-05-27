@@ -2,11 +2,16 @@
 #include "Common.h"
 #include "CDE.h"
 #include "SaNSDE.h"
+#include "pso.h"
+#include "BasinHopping.h"
+#include "OrderParameterGuided.h"
 
 enum class AlgorithmType {
     CDE,
     SaNSDE,
-    PSO
+    PSO,
+    BH,
+    OPG
 };
 
 enum class PotentialType {
@@ -36,6 +41,15 @@ public:
 
         // SaNSDE-specific parameters
         SaNSDE::Parameters sansdeParams;
+
+        // PSO-specific parameters
+        PSO::Parameters psoParams;
+
+        // BH-specific parameters
+        BasinHopping::Parameters bhParams;
+
+        // OPG-specific parameters
+        OrderParameterGuided::Parameters opgParams;
 
         // File and output parameters
         std::string potentialFile = "data/gupta_PtCo.txt";

@@ -1,12 +1,12 @@
-﻿#include "../include/CDE.h"
+#include "../include/CDE.h"
 
 // ==================== CDE_Population Implementation ====================
 
 CDE_Population::CDE_Population(CDE_MutationStrategy strat, int popSize,
     const BinaryAlloyCluster& initial,
-    PotentialBase* pot, LocalOptimizer* opt)
+    PotentialBase* pot, ThreadPool* pool)
     : strategy(strat), populationSize(popSize), potential(pot),
-    localOptimizer(opt), localSearchCount(0),
+    threadPool(pool), localSearchCount(0),
     bestIndividual(initial.getNumElementA(), initial.getNumElementB(),
         initial.getElementA(), initial.getElementB()) {
 
@@ -15,6 +15,13 @@ CDE_Population::CDE_Population(CDE_MutationStrategy strat, int popSize,
     elementA = initial.getElementA();
     elementB = initial.getElementB();
     numAtoms = numElementA + numElementB;
+
+    // Create NELbfgs instances for parallel evaluation
+    // Use at least 1, up to the number of hardware threads
+    int numLbfgs = std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
+    for (int i = 0; i < numLbfgs; ++i) {
+        lbfgsPool.push_back(std::make_unique<NELbfgs>(pot));
+    }
 
     population.reserve(populationSize);
     mutantPopulation.reserve(populationSize);
@@ -27,8 +34,7 @@ CDE_Population::CDE_Population(CDE_MutationStrategy strat, int popSize,
     }
 
     population[0].cluster = initial;
-    population[0].energy = evaluateCluster(population[0].cluster);
-
+    population[0].energy = evaluateCluster(population[0].cluster, lbfgsPool[0].get());
 
     int countStructureFiles = population[0].cluster.countStructureFiles();
     int minLoadAttempts = 10;
@@ -39,13 +45,12 @@ CDE_Population::CDE_Population(CDE_MutationStrategy strat, int popSize,
         if (countStructureFiles > 0 && i <= minLoadAttempts) {
             int fileIndex = ((i - 1) % countStructureFiles) + 1;
             loadSuccess = population[i].cluster.loadStructureInitialize(fileIndex, numAtoms);
-            //std::cout << loadSuccess << "\t" << fileIndex << std::endl;
         }
 
         if (!loadSuccess)
             population[i].cluster.randomInitialize(2.75);
 
-        population[i].energy = evaluateCluster(population[i].cluster);
+        population[i].energy = evaluateCluster(population[i].cluster, lbfgsPool[0].get());
     }
 
     bestIndividual = population[0];
@@ -56,9 +61,9 @@ CDE_Population::CDE_Population(CDE_MutationStrategy strat, int popSize,
     }
 }
 
-double CDE_Population::evaluateCluster(BinaryAlloyCluster& cluster) {
-    if (localOptimizer) {
-        localOptimizer->optimize(cluster);
+double CDE_Population::evaluateCluster(BinaryAlloyCluster& cluster, NELbfgs* lbfgs) {
+    if (lbfgs) {
+        lbfgs->optimize(cluster);
     }
 
     double energy = potential->calculateEnergy(cluster);
@@ -125,36 +130,114 @@ void CDE_Population::mutation() {
 }
 
 void CDE_Population::crossover() {
-    for (int i = 0; i < populationSize; ++i) {
-        double CR = RandomGenerator::uniform();
+    if (threadPool) {
+        // === Parallel path ===
+        int poolSize = static_cast<int>(lbfgsPool.size());
+        std::atomic<int> lbfgsIdx{0};
 
-        if (CR < 0.3) {
-            int jrand = RandomGenerator::uniformInt(0, 3 * numAtoms - 1);
-            auto& trialCoords = trialPopulation[i].cluster.getCoordinates();
-            const auto& currentCoords = population[i].cluster.getCoordinates();
-            const auto& mutantCoords = mutantPopulation[i].cluster.getCoordinates();
+        struct EvalTask {
+            BinaryAlloyCluster* cluster;
+            double* energy;
+        };
 
-            for (int j = 0; j < 3 * numAtoms; ++j) {
-                if (RandomGenerator::uniform() < CR || j == jrand) {
-                    trialCoords[j] = mutantCoords[j];
+        struct SpliceInfo {
+            int child2Idx;   // index into child2Pool
+            int popIndex;    // index into trialPopulation
+        };
+
+        std::vector<EvalTask> evalTasks;
+        std::vector<BinaryAlloyCluster> child2Pool;
+        std::vector<double> child2Energies;
+        std::vector<SpliceInfo> spliceInfos;
+        evalTasks.reserve(populationSize * 2);
+        child2Pool.reserve(populationSize);
+        child2Energies.reserve(populationSize);
+        spliceInfos.reserve(populationSize);
+
+        for (int i = 0; i < populationSize; ++i) {
+            double CR = RandomGenerator::uniform();
+
+            if (CR < 0.3) {
+                int jrand = RandomGenerator::uniformInt(0, 3 * numAtoms - 1);
+                auto& trialCoords = trialPopulation[i].cluster.getCoordinates();
+                const auto& currentCoords = population[i].cluster.getCoordinates();
+                const auto& mutantCoords = mutantPopulation[i].cluster.getCoordinates();
+
+                for (int j = 0; j < 3 * numAtoms; ++j) {
+                    if (RandomGenerator::uniform() < CR || j == jrand) {
+                        trialCoords[j] = mutantCoords[j];
+                    }
+                    else {
+                        trialCoords[j] = currentCoords[j];
+                    }
                 }
-                else {
-                    trialCoords[j] = currentCoords[j];
-                }
+                evalTasks.push_back({ &trialPopulation[i].cluster, &trialPopulation[i].energy });
             }
-            trialPopulation[i].energy = evaluateCluster(trialPopulation[i].cluster);
+            else {
+                child2Pool.emplace_back(numElementA, numElementB, elementA, elementB);
+                BinaryAlloyCluster& child2 = child2Pool.back();
+                sphereCutSplice(population[i].cluster, mutantPopulation[i].cluster,
+                    trialPopulation[i].cluster, child2);
+
+                child2Energies.push_back(0.0);
+                spliceInfos.push_back({ static_cast<int>(child2Pool.size()) - 1, i });
+                evalTasks.push_back({ &trialPopulation[i].cluster, &trialPopulation[i].energy });
+                evalTasks.push_back({ &child2, &child2Energies.back() });
+            }
         }
-        else {
-            BinaryAlloyCluster child2(numElementA, numElementB, elementA, elementB);
-            sphereCutSplice(population[i].cluster, mutantPopulation[i].cluster,
-                trialPopulation[i].cluster, child2);
 
-            trialPopulation[i].energy = evaluateCluster(trialPopulation[i].cluster);
-            double energy2 = evaluateCluster(child2);
+        if (!evalTasks.empty()) {
+            for (auto& task : evalTasks) {
+                threadPool->submit([this, &task, &lbfgsIdx, poolSize]() {
+                    int idx = lbfgsIdx.fetch_add(1) % poolSize;
+                    *task.energy = evaluateCluster(*task.cluster, lbfgsPool[idx].get());
+                });
+            }
+            threadPool->waitAll();
+        }
 
-            if (energy2 < trialPopulation[i].energy) {
-                trialPopulation[i].cluster = child2;
-                trialPopulation[i].energy = energy2;
+        for (auto& info : spliceInfos) {
+            double child2Energy = child2Energies[info.child2Idx];
+            if (child2Energy < trialPopulation[info.popIndex].energy) {
+                trialPopulation[info.popIndex].energy = child2Energy;
+                trialPopulation[info.popIndex].cluster = std::move(child2Pool[info.child2Idx]);
+            }
+        }
+    }
+    else {
+        // === Serial fallback ===
+        NELbfgs* lbfgs = lbfgsPool[0].get();
+        for (int i = 0; i < populationSize; ++i) {
+            double CR = RandomGenerator::uniform();
+
+            if (CR < 0.3) {
+                int jrand = RandomGenerator::uniformInt(0, 3 * numAtoms - 1);
+                auto& trialCoords = trialPopulation[i].cluster.getCoordinates();
+                const auto& currentCoords = population[i].cluster.getCoordinates();
+                const auto& mutantCoords = mutantPopulation[i].cluster.getCoordinates();
+
+                for (int j = 0; j < 3 * numAtoms; ++j) {
+                    if (RandomGenerator::uniform() < CR || j == jrand) {
+                        trialCoords[j] = mutantCoords[j];
+                    }
+                    else {
+                        trialCoords[j] = currentCoords[j];
+                    }
+                }
+                trialPopulation[i].energy = evaluateCluster(trialPopulation[i].cluster, lbfgs);
+            }
+            else {
+                BinaryAlloyCluster child2(numElementA, numElementB, elementA, elementB);
+                sphereCutSplice(population[i].cluster, mutantPopulation[i].cluster,
+                    trialPopulation[i].cluster, child2);
+
+                trialPopulation[i].energy = evaluateCluster(trialPopulation[i].cluster, lbfgs);
+                double energy2 = evaluateCluster(child2, lbfgs);
+
+                if (energy2 < trialPopulation[i].energy) {
+                    trialPopulation[i].cluster = std::move(child2);
+                    trialPopulation[i].energy = energy2;
+                }
             }
         }
     }
@@ -173,39 +256,107 @@ void CDE_Population::selection() {
 }
 
 void CDE_Population::swapAtoms() {
-    for (int idx = 0; idx < populationSize; ++idx) {
+    if (threadPool) {
+        // === Parallel path ===
+        int poolSize = static_cast<int>(lbfgsPool.size());
+        std::atomic<int> lbfgsIdx{0};
 
-        if (fabs(population[idx].energy - bestIndividual.energy) < 0.2 && RandomGenerator::uniform() < 0.9) {
-            BinaryAlloyCluster newCluster = population[idx].cluster;
+        struct SwapJob {
+            BinaryAlloyCluster newCluster;
+            int populationIdx;
+            double energy;
+            bool valid;
+        };
 
-            std::vector<int> typeA_indices, typeB_indices;
-            for (int i = 0; i < numAtoms; ++i) {
-                if (newCluster.getAtomType(i) == 0) {
-                    typeA_indices.push_back(i);
+        std::vector<SwapJob> swapJobs;
+        swapJobs.reserve(populationSize);
+
+        for (int idx = 0; idx < populationSize; ++idx) {
+            if (fabs(population[idx].energy - bestIndividual.energy) < 0.2 && RandomGenerator::uniform() < 0.9) {
+                BinaryAlloyCluster newCluster = population[idx].cluster;
+
+                std::vector<int> typeA_indices, typeB_indices;
+                for (int i = 0; i < numAtoms; ++i) {
+                    if (newCluster.getAtomType(i) == 0) {
+                        typeA_indices.push_back(i);
+                    }
+                    else {
+                        typeB_indices.push_back(i);
+                    }
                 }
-                else {
-                    typeB_indices.push_back(i);
+
+                if (!typeA_indices.empty() && !typeB_indices.empty()) {
+                    int idxA = typeA_indices[RandomGenerator::uniformInt(0, static_cast<int>(typeA_indices.size()) - 1)];
+                    int idxB = typeB_indices[RandomGenerator::uniformInt(0, static_cast<int>(typeB_indices.size()) - 1)];
+
+                    auto posA = newCluster.getAtomPosition(idxA);
+                    auto posB = newCluster.getAtomPosition(idxB);
+                    newCluster.setAtomPosition(idxA, posB[0], posB[1], posB[2]);
+                    newCluster.setAtomPosition(idxB, posA[0], posA[1], posA[2]);
+
+                    swapJobs.push_back({ newCluster, idx, 0.0, true });
                 }
             }
+        }
 
-            if (!typeA_indices.empty() && !typeB_indices.empty()) {
-                int idxA = typeA_indices[RandomGenerator::uniformInt(0, static_cast<int>(typeA_indices.size()) - 1)];
-                int idxB = typeB_indices[RandomGenerator::uniformInt(0, static_cast<int>(typeB_indices.size()) - 1)];
+        if (!swapJobs.empty()) {
+            for (auto& job : swapJobs) {
+                threadPool->submit([this, &job, &lbfgsIdx, poolSize]() {
+                    int lbfgsId = lbfgsIdx.fetch_add(1) % poolSize;
+                    job.energy = evaluateCluster(job.newCluster, lbfgsPool[lbfgsId].get());
+                });
+            }
+            threadPool->waitAll();
+        }
 
-                auto posA = newCluster.getAtomPosition(idxA);
-                auto posB = newCluster.getAtomPosition(idxB);
-                newCluster.setAtomPosition(idxA, posB[0], posB[1], posB[2]);
-                newCluster.setAtomPosition(idxB, posA[0], posA[1], posA[2]);
+        for (auto& job : swapJobs) {
+            if (job.valid && job.energy < population[job.populationIdx].energy) {
+                population[job.populationIdx].cluster = job.newCluster;
+                population[job.populationIdx].energy = job.energy;
 
-                double newEnergy = evaluateCluster(newCluster);
+                if (job.energy < bestIndividual.energy) {
+                    bestIndividual.cluster = job.newCluster;
+                    bestIndividual.energy = job.energy;
+                }
+            }
+        }
+    }
+    else {
+        // === Serial fallback ===
+        NELbfgs* lbfgs = lbfgsPool[0].get();
+        for (int idx = 0; idx < populationSize; ++idx) {
+            if (fabs(population[idx].energy - bestIndividual.energy) < 0.2 && RandomGenerator::uniform() < 0.9) {
+                BinaryAlloyCluster newCluster = population[idx].cluster;
 
-                if (newEnergy < population[idx].energy) {
-                    population[idx].cluster = newCluster;
-                    population[idx].energy = newEnergy;
+                std::vector<int> typeA_indices, typeB_indices;
+                for (int i = 0; i < numAtoms; ++i) {
+                    if (newCluster.getAtomType(i) == 0) {
+                        typeA_indices.push_back(i);
+                    }
+                    else {
+                        typeB_indices.push_back(i);
+                    }
+                }
 
-                    if (newEnergy < bestIndividual.energy) {
-                        bestIndividual.cluster = newCluster;
-                        bestIndividual.energy = newEnergy;
+                if (!typeA_indices.empty() && !typeB_indices.empty()) {
+                    int idxA = typeA_indices[RandomGenerator::uniformInt(0, static_cast<int>(typeA_indices.size()) - 1)];
+                    int idxB = typeB_indices[RandomGenerator::uniformInt(0, static_cast<int>(typeB_indices.size()) - 1)];
+
+                    auto posA = newCluster.getAtomPosition(idxA);
+                    auto posB = newCluster.getAtomPosition(idxB);
+                    newCluster.setAtomPosition(idxA, posB[0], posB[1], posB[2]);
+                    newCluster.setAtomPosition(idxB, posA[0], posA[1], posA[2]);
+
+                    double newEnergy = evaluateCluster(newCluster, lbfgs);
+
+                    if (newEnergy < population[idx].energy) {
+                        population[idx].cluster = newCluster;
+                        population[idx].energy = newEnergy;
+
+                        if (newEnergy < bestIndividual.energy) {
+                            bestIndividual.cluster = newCluster;
+                            bestIndividual.energy = newEnergy;
+                        }
                     }
                 }
             }
@@ -299,28 +450,35 @@ void CDE_Population::receiveIndividual(const CDE_Individual& ind) {
 
 // ==================== CDE Main Class Implementation ====================
 
-CDE::CDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt)
-    : params(p), potential(pot), localOptimizer(opt),
+CDE::CDE(const Parameters& p, PotentialBase* pot)
+    : params(p), potential(pot),
     generation(0), evaluationCount(0),
     globalBest(1, 0, "A", "B") {
+
+    if (params.useThreading) {
+        int nThreads = std::max(1, params.numThreads);
+        threadPool = std::make_unique<ThreadPool>(nThreads);
+    }
 }
 
 void CDE::initialize(const BinaryAlloyCluster& initial) {
     populations.clear();
 
+    ThreadPool* pool = threadPool.get();
+
     if (params.useMultiPopulation) {
         populations.emplace_back(std::make_unique<CDE_Population>(
-            CDE_RAND1, params.populationSize, initial, potential, localOptimizer));
+            CDE_RAND1, params.populationSize, initial, potential, pool));
 
         populations.emplace_back(std::make_unique<CDE_Population>(
-            CDE_BEST1, params.populationSize, initial, potential, localOptimizer));
+            CDE_BEST1, params.populationSize, initial, potential, pool));
 
         populations.emplace_back(std::make_unique<CDE_Population>(
-            CDE_RAND_TO_BEST1, params.populationSize, initial, potential, localOptimizer));
+            CDE_RAND_TO_BEST1, params.populationSize, initial, potential, pool));
     }
     else {
         populations.emplace_back(std::make_unique<CDE_Population>(
-            CDE_RAND1, params.populationSize, initial, potential, localOptimizer));
+            CDE_RAND1, params.populationSize, initial, potential, pool));
     }
 
     globalBest = populations[0]->getBestIndividual();
@@ -341,18 +499,23 @@ void CDE::updateGlobalBest(const CDE_Individual& candidate) {
 void CDE::evolve() {
     generation++;
 
-    if (params.useThreading && params.useMultiPopulation) {
-        std::vector<std::thread> threads;
-
+    if (params.useThreading && threadPool) {
+        // Mutation and crossover for all populations
         for (auto& pop : populations) {
-            threads.emplace_back([this, &pop]() {
-                pop->evolve();
-                updateGlobalBest(pop->getBestIndividual());
-                });
+            pop->mutation();
+            pop->crossover();
         }
 
-        for (auto& thread : threads) {
-            thread.join();
+        // Selection (fast, serial)
+        for (auto& pop : populations) {
+            pop->selection();
+            updateGlobalBest(pop->getBestIndividual());
+        }
+
+        // Swap atoms (uses thread pool internally)
+        for (auto& pop : populations) {
+            pop->swapAtoms();
+            updateGlobalBest(pop->getBestIndividual());
         }
     }
     else {

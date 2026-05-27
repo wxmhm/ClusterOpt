@@ -16,6 +16,11 @@
 #include <deque>
 #include <filesystem>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <atomic>
 
 namespace fs = std::filesystem;
 
@@ -64,5 +69,63 @@ public:
         std::shuffle(indices.begin(), indices.end(), getEngine());
         if (k < n) indices.resize(k);
         return indices;
+    }
+};
+
+// Simple thread pool with submit-and-wait pattern
+class ThreadPool {
+private:
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> tasks;
+    std::mutex queueMutex;
+    std::condition_variable cv;
+    std::condition_variable doneCv;
+    std::atomic<int> tasksRemaining{0};
+    bool stop = false;
+
+public:
+    explicit ThreadPool(int numThreads) {
+        for (int i = 0; i < numThreads; ++i) {
+            workers.emplace_back([this]() {
+                while (true) {
+                    std::function<void()> task;
+                    {
+                        std::unique_lock<std::mutex> lock(queueMutex);
+                        cv.wait(lock, [this]() { return stop || !tasks.empty(); });
+                        if (stop && tasks.empty()) return;
+                        task = std::move(tasks.front());
+                        tasks.pop();
+                    }
+                    task();
+                    tasksRemaining--;
+                    doneCv.notify_one();
+                }
+            });
+        }
+    }
+
+    void submit(std::function<void()> task) {
+        tasksRemaining++;
+        {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            tasks.push(std::move(task));
+        }
+        cv.notify_one();
+    }
+
+    void waitAll() {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        doneCv.wait(lock, [this]() { return tasksRemaining == 0; });
+    }
+
+    ~ThreadPool() {
+        {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            stop = true;
+        }
+        cv.notify_all();
+        for (auto& w : workers) {
+            if (w.joinable()) w.join();
+        }
     }
 };

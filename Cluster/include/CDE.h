@@ -4,9 +4,7 @@
 #include "PotentialBase.h"
 #include "LocalOptimizer.h"
 #include "ResultManager.h"
-#include <thread>
-#include <mutex>
-
+#include "NELbfgs.h"
 enum CDE_MutationStrategy {
     CDE_RAND1,
     CDE_BEST1,
@@ -30,7 +28,6 @@ private:
     CDE_Individual bestIndividual;
 
     PotentialBase* potential;
-    LocalOptimizer* localOptimizer;
     int populationSize;
     int numAtoms;
     int numElementA;
@@ -39,16 +36,21 @@ private:
     std::string elementB;
     int localSearchCount;
 
+    ThreadPool* threadPool;
+    std::vector<std::unique_ptr<NELbfgs>> lbfgsPool;
+
 public:
     CDE_Population(CDE_MutationStrategy strat, int popSize,
         const BinaryAlloyCluster& initial,
-        PotentialBase* pot, LocalOptimizer* opt);
+        PotentialBase* pot, ThreadPool* pool);
+
     void evolve();
     void mutation();
     void crossover();
     void selection();
     void swapAtoms();
-    double evaluateCluster(BinaryAlloyCluster& cluster);
+
+    double evaluateCluster(BinaryAlloyCluster& cluster, NELbfgs* lbfgs);
     void sphereCutSplice(const BinaryAlloyCluster& parent1,
         const BinaryAlloyCluster& parent2,
         BinaryAlloyCluster& child1,
@@ -68,6 +70,7 @@ public:
         int localSearchFrequency = 1;
         bool useMultiPopulation = true;
         bool useThreading = false;
+        int numThreads = 6;
     };
 
 private:
@@ -75,15 +78,15 @@ private:
     std::vector<std::unique_ptr<CDE_Population>> populations;
     CDE_Individual globalBest;
     PotentialBase* potential;
-    LocalOptimizer* localOptimizer;
 
     int generation;
     int evaluationCount;
 
     std::mutex globalBestMutex;
+    std::unique_ptr<ThreadPool> threadPool;
 
 public:
-    CDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt);
+    CDE(const Parameters& p, PotentialBase* pot);
 
     BinaryAlloyCluster optimize(const BinaryAlloyCluster& initial,
         ResultManager* resultManager = nullptr);

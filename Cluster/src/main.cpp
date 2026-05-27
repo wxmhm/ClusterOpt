@@ -7,6 +7,8 @@
 #include "../include/CDE.h"
 #include "../include/SaNSDE.h"
 #include "../include/pso.h"
+#include "../include/BasinHopping.h"
+#include "../include/OrderParameterGuided.h"
 #include "../include/ResultManager.h"
 #include "../include/Configuration.h"
 #include <memory>
@@ -18,7 +20,7 @@ void printUsage(const char* programName) {
     std::cout << "  -atoms <n>             Total number of atoms" << std::endl;
     std::cout << "  -composition <nA>      Number of element A atoms" << std::endl;
     std::cout << "  -elements <A> <B>      Element symbols" << std::endl;
-    std::cout << "  -algorithm <CDE|SaNSDE|PSO> Select optimization algorithm" << std::endl;
+    std::cout << "  -algorithm <CDE|SaNSDE|PSO|BH|OPG> Select optimization algorithm" << std::endl;
     std::cout << "  -potential <Gupta|FinnisSinclair|SuttonChen> Select potential type" << std::endl;
     std::cout << "  -generations <n>       Maximum generations" << std::endl;
     std::cout << "  -runs <n>              Number of independent runs" << std::endl;
@@ -37,15 +39,23 @@ BinaryAlloyCluster runSingleOptimization(
     BinaryAlloyCluster best = initial;
 
     if (config.algorithm == AlgorithmType::CDE) {
-        CDE optimizer(config.cdeParams, potential, localOptimizer);
+        CDE optimizer(config.cdeParams, potential);
         best = optimizer.optimize(initial, resultManager);
     }
     else if (config.algorithm == AlgorithmType::SaNSDE) {
-        SaNSDE optimizer(config.sansdeParams, potential, localOptimizer, config.sansdeParams.useThreading);
+        SaNSDE optimizer(config.sansdeParams, potential, config.sansdeParams.useThreading);
         best = optimizer.optimize(initial, resultManager);
     }
     else if (config.algorithm == AlgorithmType::PSO) {
-        PSO optimizer(potential, localOptimizer);
+        PSO optimizer(config.psoParams, potential);
+        best = optimizer.optimize(initial, resultManager);
+    }
+    else if (config.algorithm == AlgorithmType::BH) {
+        BasinHopping optimizer(config.bhParams, potential);
+        best = optimizer.optimize(initial, resultManager);
+    }
+    else if (config.algorithm == AlgorithmType::OPG) {
+        OrderParameterGuided optimizer(config.opgParams, potential);
         best = optimizer.optimize(initial, resultManager);
     }
     else {
@@ -72,8 +82,15 @@ CompositionResult runOptimizationForComposition(
 
     std::cout << "\n========================================" << std::endl;
     std::cout << "Optimizing: " << config.elementA << nA << config.elementB << nB << std::endl;
-    std::cout << "Algorithm: " << (config.algorithm == AlgorithmType::CDE ? "CDE" :
-        config.algorithm == AlgorithmType::SaNSDE ? "SaNSDE" : "PSO") << std::endl;
+    std::string algName;
+    switch (config.algorithm) {
+        case AlgorithmType::CDE: algName = "CDE"; break;
+        case AlgorithmType::SaNSDE: algName = "SaNSDE"; break;
+        case AlgorithmType::PSO: algName = "PSO"; break;
+        case AlgorithmType::BH: algName = "BH"; break;
+        case AlgorithmType::OPG: algName = "OPG"; break;
+    }
+    std::cout << "Algorithm: " << algName << std::endl;
     std::cout << "========================================" << std::endl;
 
     // Create potential based on configuration
@@ -252,6 +269,12 @@ int main(int argc, char* argv[]) {
             else if (alg == "PSO" || alg == "pso") {
                 config.algorithm = AlgorithmType::PSO;
             }
+            else if (alg == "BH" || alg == "bh") {
+                config.algorithm = AlgorithmType::BH;
+            }
+            else if (alg == "OPG" || alg == "opg") {
+                config.algorithm = AlgorithmType::OPG;
+            }
         }
         else if (arg == "-potential" && i + 1 < argc) {
             std::string potType = argv[++i];
@@ -261,6 +284,7 @@ int main(int argc, char* argv[]) {
             int gens = std::atoi(argv[++i]);
             config.cdeParams.maxGenerations = gens;
             config.sansdeParams.maxGenerations = gens;
+            config.psoParams.maxGenerations = gens;
         }
         else if (arg == "-runs" && i + 1 < argc) {
             config.numRuns = std::atoi(argv[++i]);

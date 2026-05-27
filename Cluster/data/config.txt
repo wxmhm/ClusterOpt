@@ -2,8 +2,8 @@
 # Run with: BinaryAlloyOptimizer.exe -config data/config.txt
 
 # General
-totalAtoms=23
-numElementA=23
+totalAtoms=38
+numElementA=38
 numElementB=0
 elementA=Pt
 elementB=Cu
@@ -47,3 +47,6 @@ outputDirectory=results
 
 # Advanced
 verbose=true
+cde.useThreading=true
+cde.numThreads=6
+

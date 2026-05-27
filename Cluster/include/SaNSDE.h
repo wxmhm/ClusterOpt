@@ -2,12 +2,13 @@
 #include "Common.h"
 #include "BinaryAlloyCluster.h"
 #include "PotentialBase.h"
-#include "LocalOptimizer.h"
 #include "ResultManager.h"
+#include "NELbfgs.h"
 #include <thread>
 #include <mutex>
 #include <vector>
 #include <memory>
+#include <deque>
 
 enum class MutationStrategy {
     RAND1,
@@ -37,7 +38,9 @@ public:
 private:
     Parameters params;
     PotentialBase* potential;
-    LocalOptimizer* localOptimizer;
+
+    ThreadPool* threadPool;
+    std::vector<std::unique_ptr<NELbfgs>> lbfgsPool;
 
     int populationId;
     std::string elementA;
@@ -67,33 +70,51 @@ private:
     std::deque<SuccessMemory> successMemory;
 
     int generation;
-    int evaluationCount;
-    int localSearchCount;
+    std::atomic<int> evaluationCount{0};
+    std::atomic<int> localSearchCount{0};
+
+    // Parallel evaluation batch data
+    struct SpliceInfo {
+        int child2Idx;
+        int popIndex;
+    };
+    std::vector<BinaryAlloyCluster> child2Pool;
+    std::vector<double> child2Energies;
+    std::vector<SpliceInfo> spliceInfos;
+    std::vector<bool> usedSphereCutSplice;
 
 public:
     SaNSDE_Population(int id, const Parameters& p, PotentialBase* pot,
-        LocalOptimizer* opt, const BinaryAlloyCluster& initial);
+        const BinaryAlloyCluster& initial, ThreadPool* pool);
 
     void evolve(int currentGen);
     void initializePopulation(const BinaryAlloyCluster& initial);
-    double evaluateCluster(BinaryAlloyCluster& cluster);
+    double evaluateCluster(BinaryAlloyCluster& cluster, NELbfgs* lbfgs);
 
     const BinaryAlloyCluster& getBestCluster() const { return bestCluster; }
     double getBestEnergy() const { return bestCluster.getEnergy(); }
-    int getEvaluationCount() const { return evaluationCount; }
-    int getLocalSearchCount() const { return localSearchCount; }
+    int getEvaluationCount() const { return evaluationCount.load(); }
+    int getLocalSearchCount() const { return localSearchCount.load(); }
     void receiveIndividual(const BinaryAlloyCluster& cluster);
 
 private:
+    // Phased parallel evolution
+    void generateTrials(int currentGen);
+    void evaluateTrials();
+    void doNeighborhoodSearch(int currentGen);
+    void applySelection();
+
+    // Per-individual operations (used by generateTrials)
     void mutation(int index);
-    void crossover(int index);
-    void selection();
     void adaptParameters(int index);
-    void updateStrategyProbabilities();
     int selectStrategy();
-    double generateF(int index);
-    double generateCR(int index);
-    void neighborhoodSearch(int index, int currentGen);
+    double generateF(int idx);
+    double generateCR(int idx);
+
+    // Strategy adaptation
+    void updateStrategyProbabilities();
+
+    // Crossover helpers
     void sphereCutSplice(const BinaryAlloyCluster& parent1, const BinaryAlloyCluster& parent2,
         BinaryAlloyCluster& child1, BinaryAlloyCluster& child2);
 };
@@ -106,10 +127,11 @@ public:
 private:
     Parameters params;
     PotentialBase* potential;
-    LocalOptimizer* localOptimizer;
 
     static const int NUM_POPULATIONS = 3;
     std::vector<std::unique_ptr<SaNSDE_Population>> populations;
+
+    std::unique_ptr<ThreadPool> threadPool;
 
     BinaryAlloyCluster globalBest;
     std::mutex globalBestMutex;
@@ -118,8 +140,7 @@ private:
     bool useThreading;
 
 public:
-    SaNSDE(const Parameters& p, PotentialBase* pot, LocalOptimizer* opt,
-        bool useThreading = false);
+    SaNSDE(const Parameters& p, PotentialBase* pot, bool useThreading = false);
 
     void initialize(const BinaryAlloyCluster& initial);
     void evolve();
